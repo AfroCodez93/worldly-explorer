@@ -1,0 +1,3882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Explorer — Complete Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --parchment: #f5ead6;
+    --parchment-dark: #e8d5b0;
+    --gold: #c8933a;
+    --gold-light: #f0c060;
+    --crimson: #9b2335;
+    --teal: #1a6b6b;
+    --teal-light: #2d9b8a;
+    --fog: #8a7d65;
+    --correct: #2a7a3b;
+    --wrong: #9b2335;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #2a1f0e;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, #3d2910 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, #1a1208 0%, transparent 60%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .game-container {
+    width: 100%;
+    max-width: 680px;
+    background: var(--parchment);
+    border-radius: 4px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .game-container::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid var(--gold);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.4;
+  }
+
+  .header {
+    background: var(--ink);
+    padding: 28px 32px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+  }
+
+  .header-ornament {
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    opacity: 0.7;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 900;
+    color: var(--parchment);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+  }
+
+  .header h1 span {
+    color: var(--gold-light);
+  }
+
+  .header-sub {
+    font-size: 13px;
+    color: var(--fog);
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .start-screen {
+    padding: 36px 32px 40px;
+    text-align: center;
+  }
+
+  .globe-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    display: block;
+    animation: spin 20s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(360deg); }
+  }
+
+  .start-screen h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+
+  .start-screen p {
+    color: var(--fog);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .feature-tags {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .tag {
+    padding: 4px 12px;
+    background: var(--parchment-dark);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--fog);
+    font-weight: 500;
+  }
+
+  .mode-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .mode-card {
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 8px;
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .mode-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  }
+
+  .mode-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .mode-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .mode-desc {
+    font-size: 12px;
+    color: var(--fog);
+    line-height: 1.5;
+  }
+
+  /* TODAY IN HISTORY SECTION */
+  .today-history-section {
+    background: linear-gradient(135deg, #fff9f0 0%, #fffbf5 100%);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 12px rgba(200, 147, 58, 0.15);
+  }
+
+  .today-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--parchment-dark);
+  }
+
+  .calendar-icon {
+    font-size: 32px;
+  }
+
+  .today-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .today-date {
+    font-size: 12px;
+    color: var(--fog);
+    letter-spacing: 0.5px;
+  }
+
+  .history-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .history-fact {
+    padding: 12px 14px;
+    background: white;
+    border-left: 3px solid var(--gold);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink);
+    animation: factSlideIn 0.4s ease;
+  }
+
+  .history-fact:nth-child(1) { animation-delay: 0.1s; }
+  .history-fact:nth-child(2) { animation-delay: 0.2s; }
+  .history-fact:nth-child(3) { animation-delay: 0.3s; }
+  .history-fact:nth-child(4) { animation-delay: 0.4s; }
+  .history-fact:nth-child(5) { animation-delay: 0.5s; }
+
+  @keyframes factSlideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .fact-year {
+    font-weight: 700;
+    color: var(--gold);
+    margin-right: 6px;
+  }
+
+  .start-btn {
+    padding: 18px 48px;
+    background: var(--ink);
+    color: var(--gold-light);
+    border: none;
+    border-radius: 6px;
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  }
+
+  .replay-btn {
+    padding: 16px 36px;
+    background: var(--ink);
+    color: var(--gold-light);
+    border: none;
+    border-radius: 6px;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .replay-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  }
+
+  .stats-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--parchment-dark);
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fog);
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  /* TOGGLE SWITCH */
+  .mode-toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 2px solid var(--parchment-dark);
+  }
+
+  .mode-toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fog);
+    letter-spacing: 0.5px;
+  }
+
+  .mode-toggle-label.active {
+    color: var(--ink);
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 56px;
+    height: 28px;
+    background: var(--parchment-dark);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .toggle-switch.ai-mode {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .toggle-switch.ai-mode .toggle-slider {
+    transform: translateX(28px);
+  }
+
+  /* FLASHCARD STYLES */
+  .flashcard-wrapper {
+    perspective: 1000px;
+    margin-bottom: 24px;
+  }
+
+  .flashcard {
+    width: 100%;
+    height: 340px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .flashcard-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+  }
+
+  .flashcard-inner.flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-front,
+  .flashcard-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 8px;
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    border: 2px solid var(--parchment-dark);
+  }
+
+  .flashcard-front {
+    background: white;
+  }
+
+  .flashcard-back {
+    background: linear-gradient(135deg, #fffbf2 0%, #fff8e8 100%);
+    transform: rotateY(180deg);
+  }
+
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fog);
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  .card-content {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.4;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flashcard-back .card-content {
+    font-size: clamp(14px, 3vw, 16px);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .flip-hint {
+    font-size: 12px;
+    color: var(--gold);
+    margin-top: 12px;
+    font-weight: 500;
+    opacity: 0.7;
+  }
+
+  .card-category {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 10px;
+    padding: 4px 10px;
+    background: var(--gold);
+    color: white;
+    border-radius: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .card-source {
+    position: absolute;
+    bottom: 12px;
+    left: 16px;
+    right: 16px;
+    font-size: 10px;
+    color: var(--fog);
+    font-style: italic;
+    text-align: center;
+  }
+
+  .flashcard-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .control-btn {
+    padding: 12px 24px;
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .control-btn:hover:not(:disabled) {
+    border-color: var(--gold);
+    background: var(--gold);
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .control-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .generate-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    font-size: 15px;
+  }
+
+  .generate-btn::after {
+    content: ' ✨';
+  }
+
+  .generate-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7689f0 0%, #8556b0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .shuffle-btn {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+
+  .shuffle-btn:hover:not(:disabled) {
+    background: var(--teal-light);
+    border-color: var(--teal-light);
+  }
+
+  .difficulty-select {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .diff-btn {
+    padding: 10px 22px;
+    border: 2px solid var(--parchment-dark);
+    background: white;
+    border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fog);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+
+  .diff-btn:hover, .diff-btn.active {
+    border-color: var(--gold);
+    background: var(--gold);
+    color: white;
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin-loader 0.8s linear infinite;
+  }
+
+  @keyframes spin-loader {
+    to { transform: rotate(360deg); }
+  }
+
+  .info-box {
+    background: rgba(102, 126, 234, 0.1);
+    border-left: 3px solid #667eea;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .ai-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+
+  @media (max-width: 480px) {
+    .mode-cards { grid-template-columns: 1fr; }
+    .flashcard { height: 300px; }
+    .flashcard-front, .flashcard-back { padding: 24px 20px; }
+    .control-btn { padding: 10px 16px; font-size: 13px; }
+    .options-grid { grid-template-columns: 1fr; }
+    .question-area, .start-screen, .end-screen { padding: 24px 20px; }
+    .score-breakdown { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px 12px; }
+  }
+
+  /* ── QUIZ GAME STYLES ───────────────────────────────────────── */
+  .stat-value.gold { color: var(--gold); }
+
+  .timer-wrap {
+    position: relative;
+    width: 52px;
+    height: 52px;
+  }
+  
+  .timer-svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+  .timer-bg { fill: none; stroke: #d4c4a0; stroke-width: 3; }
+  .timer-ring {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 138;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke 0.3s;
+  }
+  .timer-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    background: var(--ink);
+    color: var(--gold-light);
+  }
+
+  .category-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gold-light);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .question-area {
+    padding: 28px 32px 20px;
+    animation: fadeSlide 0.3s ease;
+  }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .question-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .question-counter {
+    font-size: 12px;
+    color: var(--fog);
+    letter-spacing: 1px;
+  }
+
+  .question-text {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(18px, 3.5vw, 24px);
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+
+  .question-hint {
+    font-size: 13px;
+    color: var(--fog);
+    font-style: italic;
+    margin-bottom: 24px;
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .option-btn {
+    padding: 14px 16px;
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    text-align: left;
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.35;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--gold);
+    background: #fffbf2;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(200, 147, 58, 0.2);
+  }
+
+  .option-letter {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--parchment-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--fog);
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .option-btn:hover:not(:disabled) .option-letter {
+    background: var(--gold);
+    color: white;
+  }
+
+  .option-btn.correct {
+    background: #f0faf2;
+    border-color: var(--correct);
+    animation: correctFlash 0.4s ease;
+  }
+
+  .option-btn.correct .option-letter {
+    background: var(--correct);
+    color: white;
+  }
+
+  .option-btn.wrong {
+    background: #fff2f3;
+    border-color: var(--wrong);
+    animation: wrongShake 0.4s ease;
+  }
+
+  .option-btn.wrong .option-letter {
+    background: var(--wrong);
+    color: white;
+  }
+
+  .option-btn.reveal {
+    background: #f0faf2;
+    border-color: var(--correct);
+    opacity: 0.7;
+  }
+
+  .option-btn:disabled { cursor: not-allowed; }
+
+  @keyframes correctFlash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes wrongShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .feedback {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+
+  .feedback.show { opacity: 1; }
+
+  .feedback.correct-fb {
+    background: #f0faf2;
+    color: var(--correct);
+    border-left: 3px solid var(--correct);
+  }
+
+  .feedback.wrong-fb {
+    background: #fff2f3;
+    color: var(--wrong);
+    border-left: 3px solid var(--wrong);
+  }
+
+  .feedback-icon { font-size: 18px; flex-shrink: 0; }
+
+  .progress-track {
+    height: 4px;
+    background: var(--parchment-dark);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .next-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--ink);
+    color: var(--gold-light);
+    border: none;
+    border-radius: 6px;
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
+    pointer-events: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .next-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.05) 100%);
+  }
+
+  .next-btn.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .next-btn:hover {
+    background: #2d2015;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+
+  .end-screen {
+    padding: 36px 32px 40px;
+    text-align: center;
+  }
+
+  .trophy {
+    font-size: 72px;
+    margin-bottom: 16px;
+    display: block;
+    animation: bounceIn 0.6s ease;
+  }
+
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-10deg); }
+    60% { transform: scale(1.15) rotate(3deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  .end-screen h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .final-score-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin: 16px 0 4px;
+  }
+
+  .final-score-label {
+    color: var(--fog);
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+    padding: 20px;
+    background: var(--parchment-dark);
+    border-radius: 8px;
+  }
+
+  .breakdown-item {
+    text-align: center;
+  }
+
+  .breakdown-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .breakdown-label {
+    font-size: 11px;
+    color: var(--fog);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .rank-badge {
+    display: inline-block;
+    padding: 8px 20px;
+    background: var(--ink);
+    color: var(--gold-light);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+  }
+
+  .end-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ── STATS PANEL ────────────────────────────────────────────── */
+  .stats-panel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 2px solid var(--parchment-dark);
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .stat-icon {
+    font-size: 28px;
+  }
+
+  .stat-info {
+    flex: 1;
+  }
+
+  .stat-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .stat-name {
+    font-size: 10px;
+    color: var(--fog);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* ── ACHIEVEMENTS ───────────────────────────────────────────── */
+  .achievements-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .achievement-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .achievement-card.unlocked {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, #fffbf2 0%, #fff8e8 100%);
+  }
+
+  .achievement-card.locked {
+    opacity: 0.5;
+  }
+
+  .achievement-card-icon {
+    font-size: 36px;
+    flex-shrink: 0;
+  }
+
+  .achievement-card.locked .achievement-card-icon {
+    filter: grayscale(100%);
+    opacity: 0.4;
+  }
+
+  .achievement-card-content {
+    flex: 1;
+  }
+
+  .achievement-card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .achievement-card-desc {
+    font-size: 13px;
+    color: var(--fog);
+    line-height: 1.4;
+  }
+
+  .achievement-badge {
+    padding: 4px 10px;
+    background: var(--gold);
+    color: white;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .achievement-card.locked .achievement-badge {
+    background: var(--fog);
+  }
+
+  /* ── ACHIEVEMENT NOTIFICATION ───────────────────────────────── */
+  .achievement-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    max-width: 320px;
+    background: white;
+    border: 3px solid var(--gold);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 1000;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  .achievement-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .achievement-icon {
+    font-size: 48px;
+    flex-shrink: 0;
+  }
+
+  .achievement-info {
+    flex: 1;
+  }
+
+  .achievement-title {
+    font-size: 11px;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .achievement-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+
+  .achievement-desc {
+    font-size: 12px;
+    color: var(--fog);
+  }
+
+  @media (max-width: 480px) {
+    .stats-panel { grid-template-columns: 1fr; gap: 8px; }
+    .achievement-notification {
+      right: 16px;
+      left: 16px;
+      max-width: none;
+    }
+    .mode-cards { grid-template-columns: 1fr; }
+    .continent-selector { flex-direction: column; }
+    .countries-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ── FUN FACT CONTAINER ──────────────────────────────────────── */
+  .fun-fact-container {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border: 2px solid #ff9800;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    animation: factFadeIn 0.5s ease;
+  }
+
+  @keyframes factFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fun-fact-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+
+  .fun-fact-content {
+    flex: 1;
+  }
+
+  .fun-fact-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e65100;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .fun-fact-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  /* ── WORLD TOUR STYLES ───────────────────────────────────────── */
+  .weekly-challenge-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    color: white;
+  }
+
+  .challenge-icon {
+    font-size: 28px;
+  }
+
+  .challenge-info {
+    flex: 1;
+    text-align: left;
+  }
+
+  .challenge-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .challenge-progress {
+    font-size: 11px;
+    opacity: 0.9;
+  }
+
+  .continent-selector {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .continent-btn {
+    padding: 8px 16px;
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fog);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .continent-btn:hover, .continent-btn.active {
+    border-color: var(--gold);
+    background: var(--gold);
+    color: white;
+  }
+
+  .countries-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .country-card {
+    padding: 16px;
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .country-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .country-card.visited {
+    background: linear-gradient(135deg, #f0faf2 0%, #e8f5e9 100%);
+    border-color: var(--correct);
+  }
+
+  .country-card.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .country-card-flag {
+    font-size: 36px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .country-card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .country-card-status {
+    font-size: 10px;
+    color: var(--fog);
+  }
+
+  .country-card.visited .country-card-status {
+    color: var(--correct);
+    font-weight: 600;
+  }
+
+  .country-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+
+  .country-flag {
+    font-size: 64px;
+  }
+
+  .country-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .country-subtitle {
+    font-size: 13px;
+    color: var(--fog);
+  }
+
+  /* ── COUNTRY FACTS UNLOCK ────────────────────────────────────── */
+  .unlock-celebration {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .unlock-flag {
+    font-size: 96px;
+    margin-bottom: 16px;
+    animation: unlockPop 0.6s ease;
+  }
+
+  @keyframes unlockPop {
+    0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+    60% { transform: scale(1.2) rotate(10deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  .unlock-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .unlock-subtitle {
+    font-size: 16px;
+    color: var(--fog);
+  }
+
+  .unlock-subtitle span {
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .facts-container {
+    background: white;
+    border: 2px solid var(--parchment-dark);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .facts-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .facts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .fact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--parchment);
+    border-left: 3px solid var(--gold);
+    border-radius: 6px;
+    animation: factSlideIn 0.4s ease;
+    animation-fill-mode: both;
+  }
+
+  .fact-item:nth-child(1) { animation-delay: 0.1s; }
+  .fact-item:nth-child(2) { animation-delay: 0.2s; }
+  .fact-item:nth-child(3) { animation-delay: 0.3s; }
+  .fact-item:nth-child(4) { animation-delay: 0.4s; }
+  .fact-item:nth-child(5) { animation-delay: 0.5s; }
+  .fact-item:nth-child(6) { animation-delay: 0.6s; }
+  .fact-item:nth-child(7) { animation-delay: 0.7s; }
+
+  .fact-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .fact-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+</style>
+</head>
+<body>
+
+<div class="game-container">
+  <div class="header">
+    <div class="header-ornament">✦ &nbsp; An Atlas of Knowledge &nbsp; ✦</div>
+    <h1>World <span>Explorer</span></h1>
+    <div class="header-sub">History · Geography · Etymology</div>
+  </div>
+
+  <!-- MAIN MENU -->
+  <div id="menuScreen" class="screen active start-screen">
+    <span class="globe-icon">🌍</span>
+    <h2>Choose Your Adventure</h2>
+    <p>Test your knowledge with quizzes or dive deep with interactive flashcards.</p>
+
+    <!-- STATS PANEL -->
+    <div class="stats-panel">
+      <div class="stat-item">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-info">
+          <div class="stat-number" id="streakNumber">0</div>
+          <div class="stat-name">Day Streak</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-info">
+          <div class="stat-number" id="achievementCount">0/11</div>
+          <div class="stat-name">Achievements</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <div class="stat-number" id="accuracyNumber">0%</div>
+          <div class="stat-name">Accuracy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAY IN HISTORY SECTION -->
+    <div class="today-history-section">
+      <div class="today-header">
+        <span class="calendar-icon">📅</span>
+        <div>
+          <div class="today-title">Today in History</div>
+          <div class="today-date" id="todayDate">Loading...</div>
+        </div>
+      </div>
+      <div class="history-facts" id="historyFacts">
+        <div class="loading-spinner" style="margin: 20px auto;"></div>
+      </div>
+    </div>
+
+    <!-- DAILY FUN FACT -->
+    <div class="fun-fact-container">
+      <div class="fun-fact-icon">💡</div>
+      <div class="fun-fact-content">
+        <div class="fun-fact-label">Did You Know?</div>
+        <div class="fun-fact-text" id="funFactText">Loading...</div>
+      </div>
+    </div>
+
+    <div class="mode-cards">
+      <div class="mode-card" onclick="showScreen('startScreen')">
+        <span class="mode-icon">🎮</span>
+        <div class="mode-title">Quiz Game</div>
+        <div class="mode-desc">Timed questions, scoring, and achievements</div>
+      </div>
+      <div class="mode-card" onclick="showWorldTour()">
+        <span class="mode-icon">✈️</span>
+        <div class="mode-title">World Tour</div>
+        <div class="mode-desc">Travel the globe, unlock countries</div>
+      </div>
+      <div class="mode-card" onclick="showStudyMode()">
+        <span class="mode-icon">📚</span>
+        <div class="mode-title">Study Mode</div>
+        <div class="mode-desc">Flashcards with curated or AI-generated content</div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:20px;">
+      <button class="replay-btn" style="font-size:14px; padding:10px 20px; background:var(--teal);" onclick="showAchievements()">🏆 View Achievements</button>
+    </div>
+  </div>
+
+  <!-- QUIZ START SCREEN -->
+  <div id="startScreen" class="screen start-screen">
+    <button style="position:absolute; top:20px; left:20px; background:none; border:none; color:var(--ink); font-size:20px; cursor:pointer;" onclick="showScreen('menuScreen')">← Back</button>
+    
+    <span class="globe-icon">🎯</span>
+    <h2>Ready to explore?</h2>
+    <p>Journey across continents and centuries. Test your knowledge of the world's landmarks, empires, capitals, and turning points in history.</p>
+
+    <div class="feature-tags">
+      <span class="tag">🗺️ Geography</span>
+      <span class="tag">⚔️ Ancient History</span>
+      <span class="tag">📖 Etymology</span>
+      <span class="tag">🏛️ Civilizations</span>
+    </div>
+
+    <div style="margin-bottom:10px; font-size:13px; color:var(--fog); letter-spacing:1px; text-transform:uppercase;">Choose Difficulty</div>
+    <div class="difficulty-select">
+      <button class="diff-btn" onclick="setDiff('easy')">🌱 Easy</button>
+      <button class="diff-btn active" onclick="setDiff('mixed')">🌍 Mixed</button>
+      <button class="diff-btn" onclick="setDiff('hard')">🔥 Expert</button>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">Begin Expedition →</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="gameScreen" class="screen">
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-label">Score</span>
+        <span class="stat-value gold" id="scoreDisplay">0</span>
+      </div>
+      <div class="timer-wrap">
+        <svg class="timer-svg" width="52" height="52" viewBox="0 0 52 52">
+          <circle class="timer-bg" cx="26" cy="26" r="22"/>
+          <circle class="timer-ring" id="timerRing" cx="26" cy="26" r="22"/>
+        </svg>
+        <div class="timer-text" id="timerText">20</div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Streak</span>
+        <span class="stat-value" id="streakDisplay">0🔥</span>
+      </div>
+    </div>
+
+    <div class="progress-track" style="margin:0; border-radius:0;">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <div class="question-area" id="questionArea">
+      <div class="question-meta">
+        <div class="question-counter" id="questionCounter">Question 1 of 10</div>
+        <div class="category-badge">
+          <div class="category-dot"></div>
+          <span id="categoryLabel">Geography</span>
+        </div>
+      </div>
+
+      <div class="question-text" id="questionText">Loading...</div>
+      <div class="question-hint" id="questionHint"></div>
+
+      <div class="options-grid" id="optionsGrid"></div>
+
+      <div class="feedback" id="feedback">
+        <span class="feedback-icon" id="feedbackIcon"></span>
+        <span id="feedbackText"></span>
+      </div>
+
+      <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next Question →</button>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="endScreen" class="screen end-screen">
+    <span class="trophy" id="trophyEmoji">🏆</span>
+    <h2 id="endTitle">Expedition Complete!</h2>
+    <div class="final-score-display" id="finalScore">0</div>
+    <div class="final-score-label">Total Points</div>
+    <div class="rank-badge" id="rankBadge">🗺️ Apprentice Explorer</div>
+    <div class="score-breakdown">
+      <div class="breakdown-item">
+        <div class="breakdown-value" id="correctCount">0</div>
+        <div class="breakdown-label">Correct</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="breakdown-value" id="accuracyPct">0%</div>
+        <div class="breakdown-label">Accuracy</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="breakdown-value" id="bestStreak">0</div>
+        <div class="breakdown-label">Best Streak</div>
+      </div>
+    </div>
+    <div class="end-buttons">
+      <button class="replay-btn" onclick="resetToMenu()">🌍 Play Again</button>
+      <button class="replay-btn" style="background:var(--teal);" onclick="showStudyMode()">📚 Study Mode</button>
+    </div>
+  </div>
+
+  <!-- STUDY MODE SCREEN -->
+  <div id="studyScreen" class="screen">
+    <div class="stats-bar">
+      <button style="background:none; border:none; color:var(--ink); font-size:20px; cursor:pointer;" onclick="showScreen('menuScreen')" title="Back to menu">← Back</button>
+      <div class="stat">
+        <span class="stat-label">Progress</span>
+        <span class="stat-value" id="studyProgress">0/0</span>
+      </div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <div id="categorySelection">
+        <div style="text-align:center; margin-bottom:24px;">
+          <h2 style="font-family:'Playfair Display',serif; font-size:26px; color:var(--ink); margin-bottom:12px;">📚 Study Mode</h2>
+          
+          <!-- MODE TOGGLE -->
+          <div class="mode-toggle-container">
+            <span class="mode-toggle-label active" id="curatedLabel">📚 Curated (90 cards)</span>
+            <div class="toggle-switch" id="modeToggle" onclick="toggleStudyMode()">
+              <div class="toggle-slider"></div>
+            </div>
+            <span class="mode-toggle-label" id="aiLabel">✨ AI-Generated</span>
+          </div>
+
+          <div id="aiModeInfo" class="info-box" style="display:none;">
+            <strong>AI Mode:</strong> Generate unlimited fresh flashcards using Claude's web search. Each deck is created from authoritative sources in real-time.
+          </div>
+          
+          <p style="color:var(--fog); font-size:14px; margin-bottom:20px;">Choose a category to begin</p>
+          
+          <div class="difficulty-select" id="categorySelect">
+            <button class="diff-btn active" onclick="selectCategory('etymology')">📖 Etymology</button>
+            <button class="diff-btn" onclick="selectCategory('history')">⚔️ History</button>
+            <button class="diff-btn" onclick="selectCategory('geography')">🗺️ Geography</button>
+          </div>
+
+          <div style="margin-top:24px;">
+            <button class="control-btn" id="startStudyBtn" onclick="startStudying()">Start Studying</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="flashcardContainer" style="display:none;">
+        <div class="flashcard-wrapper">
+          <div class="flashcard" id="flashcard" onclick="flipCard()">
+            <div class="flashcard-inner" id="flashcardInner">
+              <div class="flashcard-front">
+                <div class="card-label">WORD / QUESTION</div>
+                <div class="card-content" id="cardFront">Loading...</div>
+                <div class="flip-hint">Tap to flip →</div>
+              </div>
+              <div class="flashcard-back">
+                <div class="card-label">ANSWER / ORIGIN</div>
+                <div class="card-content" id="cardBack">Loading...</div>
+                <div class="card-category" id="cardCategory"></div>
+                <div class="card-source" id="cardSource"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flashcard-controls">
+          <button class="control-btn" onclick="prevCard()" id="prevBtn">← Previous</button>
+          <button class="control-btn shuffle-btn" onclick="shuffleDeck()" id="shuffleBtn">🔀 Shuffle</button>
+          <button class="control-btn" onclick="nextCard()" id="nextBtn">Next →</button>
+        </div>
+
+        <div style="text-align:center; margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+          <button class="replay-btn" style="font-size:14px; padding:10px 20px;" onclick="backToCategorySelect()">← Change Category</button>
+          <button class="control-btn generate-btn" id="generateMoreBtn" style="display:none;" onclick="generateDeck()">Generate New Deck</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORLD TOUR SCREEN -->
+  <div id="worldTourScreen" class="screen">
+    <div class="stats-bar">
+      <button style="background:none; border:none; color:var(--ink); font-size:20px; cursor:pointer;" onclick="showScreen('menuScreen')" title="Back to menu">← Back</button>
+      <div class="stat">
+        <span class="stat-label">Countries</span>
+        <span class="stat-value" id="countriesVisited">0/30</span>
+      </div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <div style="text-align:center; margin-bottom:24px;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:26px; color:var(--ink); margin-bottom:8px;">✈️ World Tour</h2>
+        <p style="color:var(--fog); font-size:14px; margin-bottom:16px;">Prove your explorer knowledge — pass 3 challenges to earn your visa to each country!</p>
+        
+        <!-- Weekly Challenge Banner -->
+        <div class="weekly-challenge-banner" id="weeklyChallengeBanner">
+          <div class="challenge-icon">🏆</div>
+          <div class="challenge-info">
+            <div class="challenge-title">Weekly Challenge: Ancient Civilizations</div>
+            <div class="challenge-progress">Visit 5 countries this week • Ends in 4 days</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Continent Selector -->
+      <div class="continent-selector">
+        <button class="continent-btn active" onclick="selectContinent('europe')">🇪🇺 Europe</button>
+        <button class="continent-btn" onclick="selectContinent('asia')">🇨🇳 Asia</button>
+        <button class="continent-btn" onclick="selectContinent('africa')">🌍 Africa</button>
+        <button class="continent-btn" onclick="selectContinent('americas')">🌎 Americas</button>
+      </div>
+
+      <!-- Countries Grid -->
+      <div class="countries-grid" id="countriesGrid">
+        <!-- Countries will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- COUNTRY CHALLENGE SCREEN -->
+  <div id="countryChallenge" class="screen">
+    <div class="stats-bar">
+      <button style="background:none; border:none; color:var(--ink); font-size:20px; cursor:pointer;" onclick="showWorldTour()" title="Back">← Countries</button>
+      <div class="stat">
+        <span class="stat-label">Progress</span>
+        <span class="stat-value" id="countryProgress">0/3</span>
+      </div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <div class="country-header">
+        <div class="country-flag" id="countryFlag">🇫🇷</div>
+        <div>
+          <div class="country-name" id="countryName">France</div>
+          <div class="country-subtitle">Pass 3 explorer challenges to earn your visa</div>
+        </div>
+      </div>
+
+      <div id="countryQuestionArea" class="question-area" style="padding:20px 0;">
+        <div class="question-text" id="countryQuestionText">Loading...</div>
+        <div class="options-grid" id="countryOptionsGrid"></div>
+        <div class="feedback" id="countryFeedback"></div>
+        <button class="next-btn" id="countryNextBtn" onclick="nextCountryQuestion()">Next Question →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COUNTRY FACTS SCREEN -->
+  <div id="countryFactsScreen" class="screen">
+    <div class="stats-bar">
+      <button style="background:none; border:none; color:var(--ink); font-size:20px; cursor:pointer;" onclick="showWorldTour()">← Countries</button>
+      <div class="stat">
+        <span class="stat-label" id="factsScreenLabel">Unlocked!</span>
+        <span class="stat-value" id="unlockedCountryName">France</span>
+      </div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <div class="unlock-celebration">
+        <div class="unlock-flag" id="unlockedFlag">🇫🇷</div>
+        <h2 class="unlock-title" id="factsScreenTitle">🎉 Congratulations!</h2>
+        <p class="unlock-subtitle" id="factsScreenSubtitle">You've unlocked <span id="unlockedCountryName2">France</span></p>
+      </div>
+
+      <div class="facts-container">
+        <h3 class="facts-heading">Fascinating Facts:</h3>
+        <div class="facts-list" id="countryFactsList">
+          <!-- Facts will be populated here -->
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:24px;">
+        <button class="replay-btn" onclick="showWorldTour()">← Back to World Tour</button>
+        <button class="replay-btn" style="background:var(--teal); margin-left:12px;" onclick="showScreen('menuScreen')">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENTS SCREEN -->
+  <div id="achievementsScreen" class="screen">
+    <div class="stats-bar">
+      <button style="background:none; border:none; color:var(--ink); font-size:20px; cursor:pointer;" onclick="showScreen('menuScreen')" title="Back to menu">← Back</button>
+      <div class="stat">
+        <span class="stat-label">Unlocked</span>
+        <span class="stat-value" id="unlockedCount">0/11</span>
+      </div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <div style="text-align:center; margin-bottom:24px;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:26px; color:var(--ink); margin-bottom:8px;">🏆 Achievements</h2>
+        <p style="color:var(--fog); font-size:14px;">Track your learning milestones</p>
+      </div>
+
+      <div class="achievements-grid" id="achievementsGrid">
+        <!-- Achievements will be populated here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Study Mode State
+let isAIMode = false;
+let selectedCategory = 'etymology';
+let studyDeck = [];
+let currentCard = 0;
+let isFlipped = false;
+
+// Quiz Game State
+let quizDifficulty = 'mixed';
+let quizQuestions = [];
+let currentQuestion = 0;
+let quizScore = 0;
+let quizStreak = 0;
+let bestQuizStreak = 0;
+let correctAnswers = 0;
+let timerInterval = null;
+let timeLeft = 20;
+let answered = false;
+const TOTAL_Q = 10;
+const TIME_LIMIT = 20;
+
+// Difficulty Adaptation
+let performanceHistory = []; // Track last 5 questions
+let adaptiveDifficulty = false;
+let currentAdaptiveLevel = 'medium'; // easy, medium, hard
+let askedQuestions = []; // Track questions already asked in this game
+
+// Progress Persistence & Achievements
+let userProgress = {
+  totalGamesPlayed: 0,
+  totalQuestionsAnswered: 0,
+  totalCorrectAnswers: 0,
+  highestScore: 0,
+  bestAccuracy: 0,
+  longestStreak: 0,
+  totalStudyCards: 0,
+  lastPlayedDate: null,
+  dailyStreakCount: 0,
+  achievements: [],
+  visitedCountries: [], // World Tour progress
+  categoryStats: {
+    geography: { correct: 0, total: 0 },
+    history: { correct: 0, total: 0 },
+    etymology: { correct: 0, total: 0 }
+  }
+};
+
+// World Tour State
+let selectedContinent = 'europe';
+let currentCountry = null;
+let countryQuestionIndex = 0;
+let countryCorrectAnswers = 0;
+
+// Country data by continent
+const countries = {
+  europe: [
+    { 
+      name: 'France', 
+      flag: '🇫🇷', 
+      capital: 'Paris',
+      facts: [
+        "France is the most visited country in the world, with over 89 million tourists annually.",
+        "The French invented the metric system in 1799 during the French Revolution.",
+        "France has won the most Nobel Prizes in Literature of any country.",
+        "The Eiffel Tower was initially criticized by Parisians and was almost torn down in 1909.",
+        "France produces over 400 different types of cheese.",
+        "French is an official language in 29 countries worldwide.",
+        "The Louvre is the world's largest art museum, housing 380,000 objects."
+      ]
+    },
+    { 
+      name: 'Germany', 
+      flag: '🇩🇪', 
+      capital: 'Berlin',
+      facts: [
+        "Germany has over 1,500 different types of beer and 5,000 brands.",
+        "The first printed book, the Gutenberg Bible, was printed in Germany around 1455.",
+        "Germany is the world's largest exporter of automobiles (Mercedes, BMW, Volkswagen).",
+        "Berlin has more bridges than Venice - about 960 bridges.",
+        "Germans are the second-largest beer consumers in the world after Czechs.",
+        "The autobahn has sections with no speed limit.",
+        "Germany invented the Christmas tree tradition in the 16th century."
+      ]
+    },
+    { 
+      name: 'Italy', 
+      flag: '🇮🇹', 
+      capital: 'Rome',
+      facts: [
+        "Italy has more UNESCO World Heritage Sites than any other country (58 sites).",
+        "The Roman Empire lasted for over 1,000 years (27 BC - 476 AD).",
+        "Italy didn't become a unified country until 1861.",
+        "The piano was invented in Italy in 1700 by Bartolomeo Cristofori.",
+        "Vatican City, the world's smallest country, is located within Rome.",
+        "Italy produces 20% of the world's wine - over 4 billion liters annually.",
+        "The University of Bologna, founded in 1088, is the world's oldest university."
+      ]
+    },
+    { 
+      name: 'Spain', 
+      flag: '🇪🇸', 
+      capital: 'Madrid',
+      facts: [
+        "Spanish is the second most spoken language by native speakers (after Mandarin).",
+        "Spain has 47 UNESCO World Heritage Sites.",
+        "The siesta tradition comes from Spain's hot climate and agricultural history.",
+        "Spain is the world's largest producer of olive oil.",
+        "The Spanish national anthem has no words - only music.",
+        "La Tomatina festival in Buñol involves throwing 150,000 tomatoes.",
+        "Barcelona's Sagrada Família has been under construction since 1882."
+      ]
+    },
+    { 
+      name: 'UK', 
+      flag: '🇬🇧', 
+      capital: 'London',
+      facts: [
+        "The UK has no written constitution - it's based on conventions and acts of Parliament.",
+        "London's Underground is the world's oldest metro system (opened 1863).",
+        "The British Empire was the largest empire in history, covering 1/4 of Earth's land.",
+        "The UK invented the World Wide Web (Tim Berners-Lee, 1989).",
+        "Windsor Castle is the oldest and largest occupied castle in the world (900+ years).",
+        "English is spoken by 1.5 billion people worldwide.",
+        "The UK has won more Nobel Prizes per capita than any other country."
+      ]
+    },
+    { 
+      name: 'Greece', 
+      flag: '🇬🇷', 
+      capital: 'Athens',
+      facts: [
+        "Greece has over 6,000 islands, but only 227 are inhabited.",
+        "Democracy was invented in Athens around 508 BC.",
+        "The Olympic Games originated in Olympia, Greece in 776 BC.",
+        "Greece has more archaeological museums than any other country.",
+        "Greek is one of the oldest written languages, dating back 3,400 years.",
+        "80% of Greece is mountainous, making it one of Europe's most mountainous countries.",
+        "Greece's coastline is 13,676 km long - the 11th longest in the world."
+      ]
+    },
+    { 
+      name: 'Netherlands', 
+      flag: '🇳🇱', 
+      capital: 'Amsterdam',
+      facts: [
+        "The Netherlands has more bicycles (23 million) than people (17 million).",
+        "About 26% of the Netherlands is below sea level.",
+        "The Dutch built the world's largest man-made island (Flevoland).",
+        "Amsterdam has 165 canals and 1,281 bridges.",
+        "The Netherlands was the first country to legalize same-sex marriage (2001).",
+        "Dutch people are the tallest in the world, with an average height of 6'0\" for men.",
+        "The country has over 1,000 windmills still standing."
+      ]
+    },
+    { 
+      name: 'Switzerland', 
+      flag: '🇨🇭', 
+      capital: 'Bern',
+      facts: [
+        "Switzerland has been neutral since 1815 and hasn't fought a war since 1505.",
+        "The Swiss invented milk chocolate, the Red Cross, and Velcro.",
+        "Switzerland has four official languages: German, French, Italian, and Romansh.",
+        "The country has more than 1,500 lakes.",
+        "Switzerland's rail network is one of the densest in the world.",
+        "The Swiss consume more chocolate than any other nation (11kg per person annually).",
+        "CERN, the world's largest particle physics laboratory, is located in Switzerland."
+      ]
+    },
+  ],
+  asia: [
+    { 
+      name: 'Japan', 
+      flag: '🇯🇵', 
+      capital: 'Tokyo',
+      facts: [
+        "Japan has over 6,800 islands, though 97% of its land is on the four largest.",
+        "Tokyo is the world's most populous metropolitan area with 37 million people.",
+        "Japan has the world's highest life expectancy (84 years).",
+        "The country experiences about 1,500 earthquakes per year.",
+        "Japan's bullet trains (Shinkansen) have never had a fatal accident since 1964.",
+        "There are more than 5 million vending machines in Japan.",
+        "Mt. Fuji is an active volcano that last erupted in 1707."
+      ]
+    },
+    { 
+      name: 'China', 
+      flag: '🇨🇳', 
+      capital: 'Beijing',
+      facts: [
+        "China is the world's most populous country with 1.4 billion people.",
+        "The Great Wall of China is over 13,000 miles long.",
+        "Paper, gunpowder, printing, and the compass were all invented in China.",
+        "China has the world's largest high-speed rail network (25,000 miles).",
+        "Mandarin is spoken by over 1 billion people, making it the most spoken language.",
+        "China spans 5 time zones but uses only one official time (Beijing Time).",
+        "The Forbidden City has 9,999 rooms and was home to 24 emperors."
+      ]
+    },
+    { 
+      name: 'India', 
+      flag: '🇮🇳', 
+      capital: 'New Delhi',
+      facts: [
+        "India is the world's largest democracy with 900 million eligible voters.",
+        "Chess, yoga, and the number zero were all invented in India.",
+        "India has 22 official languages and over 1,600 spoken languages.",
+        "The Taj Mahal took 22 years and 20,000 workers to build.",
+        "India is the world's largest producer of spices.",
+        "Varanasi is one of the world's oldest continuously inhabited cities (3,000+ years).",
+        "India has the world's largest film industry (Bollywood) producing 1,600+ films annually."
+      ]
+    },
+    { 
+      name: 'Thailand', 
+      flag: '🇹🇭', 
+      capital: 'Bangkok',
+      facts: [
+        "Thailand means 'Land of the Free' - it was never colonized by Europeans.",
+        "Bangkok's full ceremonial name is the longest city name in the world (169 letters).",
+        "Thailand has over 40,000 Buddhist temples.",
+        "The country is the world's largest exporter of rice.",
+        "Thailand's national symbol is the elephant.",
+        "Thai is a tonal language with 5 different tones that change word meanings.",
+        "The Grand Palace in Bangkok covers 2.35 million square feet."
+      ]
+    },
+    { 
+      name: 'South Korea', 
+      flag: '🇰🇷', 
+      capital: 'Seoul',
+      facts: [
+        "South Korea has the world's fastest average internet speed.",
+        "Hangul, the Korean alphabet, was invented in 1443 and is considered the most scientific alphabet.",
+        "South Korea is the world's 12th largest economy despite its small size.",
+        "K-pop generates over $5 billion annually for the Korean economy.",
+        "Seoul has the world's largest subway system by annual ridership (2.5 billion).",
+        "South Koreans are 1-2 years older than their Western age (different counting system).",
+        "The country has mandatory military service for men (18-21 months)."
+      ]
+    },
+    { 
+      name: 'Vietnam', 
+      flag: '🇻🇳', 
+      capital: 'Hanoi',
+      facts: [
+        "Vietnam is the world's largest exporter of cashews and black pepper.",
+        "The country has 8 UNESCO World Heritage Sites.",
+        "Ha Long Bay features over 1,600 limestone islands and islets.",
+        "Vietnam is home to the world's largest cave, Son Doong (5.5 miles long).",
+        "The Vietnamese language has 6 different tones.",
+        "Vietnam is one of the world's top coffee producers (second after Brazil).",
+        "The country has over 95 million people despite being slightly smaller than Germany."
+      ]
+    },
+    { 
+      name: 'Indonesia', 
+      flag: '🇮🇩', 
+      capital: 'Jakarta',
+      facts: [
+        "Indonesia is the world's largest archipelago with over 17,000 islands.",
+        "It's the world's 4th most populous country with 270 million people.",
+        "Indonesia has more active volcanoes (130) than any other country.",
+        "Komodo dragons, the world's largest lizards, are found only in Indonesia.",
+        "Indonesia is the world's largest Muslim-majority country.",
+        "The country spans 3 time zones and sits on the Pacific Ring of Fire.",
+        "Borobudur is the world's largest Buddhist temple (built in the 9th century)."
+      ]
+    },
+    { 
+      name: 'UAE', 
+      flag: '🇦🇪', 
+      capital: 'Abu Dhabi',
+      facts: [
+        "The Burj Khalifa in Dubai is the world's tallest building at 828 meters.",
+        "The UAE was formed in 1971 from 7 emirates.",
+        "Dubai has no income tax, making it a major business hub.",
+        "The UAE has the world's busiest international airport (Dubai International).",
+        "About 88% of UAE residents are expatriates from over 200 countries.",
+        "The Palm Jumeirah is the world's largest man-made island.",
+        "UAE invested heavily in renewable energy, building the world's largest single-site solar park."
+      ]
+    },
+  ],
+  africa: [
+    { 
+      name: 'Egypt', 
+      flag: '🇪🇬', 
+      capital: 'Cairo',
+      facts: [
+        "The Great Pyramid of Giza is the only surviving Ancient Wonder of the World.",
+        "Ancient Egyptians invented paper, ink, and the 365-day calendar.",
+        "The Nile is the world's longest river at 6,650 kilometers.",
+        "Egypt has over 100 pyramids, not just the famous three at Giza.",
+        "Cleopatra was actually Greek (Macedonian), not ethnically Egyptian.",
+        "The Library of Alexandria was the ancient world's largest library.",
+        "Hieroglyphics use over 700 different symbols."
+      ]
+    },
+    { 
+      name: 'South Africa', 
+      flag: '🇿🇦', 
+      capital: 'Pretoria',
+      facts: [
+        "South Africa has 11 official languages, the most of any country.",
+        "It's the only country to voluntarily give up nuclear weapons.",
+        "South Africa has 3 capital cities: Pretoria, Cape Town, and Bloemfontein.",
+        "Table Mountain is one of the oldest mountains on Earth (360 million years old).",
+        "The country produces 90% of the world's platinum.",
+        "Kruger National Park is larger than Israel.",
+        "South Africa is home to the world's largest diamond ever found (Cullinan, 3,106 carats)."
+      ]
+    },
+    { 
+      name: 'Kenya', 
+      flag: '🇰🇪', 
+      capital: 'Nairobi',
+      facts: [
+        "Kenya is the birthplace of long-distance running dominance in athletics.",
+        "The Great Wildebeest Migration in Kenya is the largest mammal migration on Earth.",
+        "Mount Kenya is the second-highest mountain in Africa (5,199m).",
+        "Kenya has 60+ national parks and reserves covering 8% of its land.",
+        "The country straddles the equator.",
+        "Swahili and English are Kenya's official languages.",
+        "Kenya is a global leader in mobile money technology (M-Pesa)."
+      ]
+    },
+    { 
+      name: 'Morocco', 
+      flag: '🇲🇦', 
+      capital: 'Rabat',
+      facts: [
+        "Morocco is only 9 miles from Europe across the Strait of Gibraltar.",
+        "The University of Al Quaraouiyine in Fez is the world's oldest operating university (859 AD).",
+        "Morocco is the world's largest exporter of sardines.",
+        "The country has the largest desert in the world, the Sahara, covering 40% of its land.",
+        "Casablanca's Hassan II Mosque has the world's tallest minaret (210m).",
+        "Morocco was the first country to recognize the United States as a nation in 1777.",
+        "Moroccan mint tea is the national drink and a symbol of hospitality."
+      ]
+    },
+    { 
+      name: 'Nigeria', 
+      flag: '🇳🇬', 
+      capital: 'Abuja',
+      facts: [
+        "Nigeria is Africa's most populous country with over 220 million people.",
+        "It's Africa's largest economy and the world's 7th most populous country.",
+        "Nigeria has over 500 indigenous languages.",
+        "Nollywood is the world's 2nd largest film industry by volume (after Bollywood).",
+        "Nigeria is the world's 6th largest oil exporter.",
+        "The country is named after the Niger River, which flows through it.",
+        "Lagos is one of the world's fastest-growing cities."
+      ]
+    },
+    { 
+      name: 'Ethiopia', 
+      flag: '🇪🇹', 
+      capital: 'Addis Ababa',
+      facts: [
+        "Ethiopia is the only African country never colonized by Europeans.",
+        "Coffee was discovered in Ethiopia in the 9th century.",
+        "Ethiopia uses a unique calendar that is 7-8 years behind the Gregorian calendar.",
+        "The country has its own alphabet, Ge'ez, with 231 characters.",
+        "Lucy, one of the oldest human fossils (3.2 million years), was found in Ethiopia.",
+        "Ethiopia is the source of the Blue Nile, which provides 85% of the Nile's water.",
+        "Addis Ababa is Africa's highest capital city at 2,400 meters elevation."
+      ]
+    },
+    { 
+      name: 'Ghana', 
+      flag: '🇬🇭', 
+      capital: 'Accra',
+      facts: [
+        "Ghana was the first sub-Saharan African country to gain independence (1957).",
+        "Ghana produces about 20% of the world's cocoa (2nd largest producer).",
+        "Lake Volta is the world's largest man-made lake by surface area.",
+        "Ghana means 'Warrior King' in the Soninke language.",
+        "The country has significant gold reserves - it was once called the Gold Coast.",
+        "Ghana is one of the most stable democracies in Africa.",
+        "Kakum National Park has a 350-meter canopy walkway through the rainforest."
+      ]
+    },
+  ],
+  americas: [
+    { 
+      name: 'USA', 
+      flag: '🇺🇸', 
+      capital: 'Washington DC',
+      facts: [
+        "The USA is the world's 3rd most populous country with 331 million people.",
+        "It has the world's largest economy with a GDP of $25+ trillion.",
+        "The USA has won more Olympic medals than any other country (2,800+).",
+        "Yellowstone was the world's first national park (established 1872).",
+        "The USA invented the internet, GPS, and the airplane.",
+        "It's the only country to have landed humans on the Moon (6 times).",
+        "The USA has 50 states spanning 6 time zones."
+      ]
+    },
+    { 
+      name: 'Canada', 
+      flag: '🇨🇦', 
+      capital: 'Ottawa',
+      facts: [
+        "Canada is the world's 2nd largest country by total area (9.98 million km²).",
+        "It has the longest coastline of any country (243,000 km).",
+        "Canada has more lakes than all other countries combined (about 879,000).",
+        "The country produces 85% of the world's maple syrup.",
+        "Canada has 2 official languages: English and French.",
+        "The country is the world's 2nd largest uranium producer.",
+        "Canada's national parks are larger than many countries."
+      ]
+    },
+    { 
+      name: 'Mexico', 
+      flag: '🇲🇽', 
+      capital: 'Mexico City',
+      facts: [
+        "Mexico City is built on top of the ancient Aztec capital Tenochtitlan.",
+        "Mexico is the birthplace of chocolate, chili peppers, and corn.",
+        "The country has 35 UNESCO World Heritage Sites.",
+        "Mexico City is sinking 10 inches per year due to groundwater extraction.",
+        "Chichen Itza is one of the New Seven Wonders of the World.",
+        "Mexico is the world's largest producer of silver.",
+        "Spanish is the world's 2nd most spoken native language, with Mexico having the most Spanish speakers."
+      ]
+    },
+    { 
+      name: 'Brazil', 
+      flag: '🇧🇷', 
+      capital: 'Brasília',
+      facts: [
+        "Brazil is the world's 5th largest country by both area and population.",
+        "The Amazon rainforest in Brazil produces 20% of Earth's oxygen.",
+        "Brazil has won the FIFA World Cup 5 times, more than any other nation.",
+        "Portuguese is the official language, making it the largest Portuguese-speaking country.",
+        "Christ the Redeemer in Rio is one of the New Seven Wonders.",
+        "Brazil contains 60% of the Amazon rainforest.",
+        "The country celebrates the world's largest carnival in Rio de Janeiro."
+      ]
+    },
+    { 
+      name: 'Argentina', 
+      flag: '🇦🇷', 
+      capital: 'Buenos Aires',
+      facts: [
+        "Argentina means 'land of silver' in Latin.",
+        "The country has won 3 FIFA World Cups (1978, 1986, 2022).",
+        "Tango, the famous dance, originated in Buenos Aires.",
+        "Argentina has the highest literacy rate in Latin America (98%).",
+        "Aconcagua, the highest mountain in the Americas (6,961m), is in Argentina.",
+        "The country is the world's 8th largest country by area.",
+        "Argentine beef is world-renowned, with the highest beef consumption per capita."
+      ]
+    },
+    { 
+      name: 'Peru', 
+      flag: '🇵🇪', 
+      capital: 'Lima',
+      facts: [
+        "Machu Picchu, one of the New Seven Wonders, was built by the Incas around 1450.",
+        "Peru has over 3,000 varieties of potatoes, which originated there.",
+        "Lake Titicaca is the world's highest navigable lake at 3,812m.",
+        "The Nazca Lines are giant geoglyphs in the desert, visible only from the air.",
+        "Peru has 90 different microclimates, more than most countries.",
+        "The Amazon River begins in Peru.",
+        "Ceviche, Peru's national dish, is raw fish marinated in citrus."
+      ]
+    },
+    { 
+      name: 'Chile', 
+      flag: '🇨🇱', 
+      capital: 'Santiago',
+      facts: [
+        "Chile is the longest north-south country in the world (4,300 km).",
+        "The Atacama Desert is the driest place on Earth - some areas have never recorded rainfall.",
+        "Easter Island (Rapa Nui) is Chilean territory, famous for its Moai statues.",
+        "Chile produces 1/3 of the world's copper.",
+        "The country has territory in Antarctica.",
+        "Chile has over 2,000 volcanoes, 500 of which are potentially active.",
+        "The country stretches across 38 degrees of latitude but only 150 km wide on average."
+      ]
+    },
+  ]
+};
+
+// Fun facts pool
+const funFacts = [
+  "The Great Wall of China is not visible from space with the naked eye, despite popular belief.",
+  "Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs that's still perfectly edible.",
+  "The shortest war in history lasted 38-45 minutes between Britain and Zanzibar in 1896.",
+  "A single strand of spaghetti is called a 'spaghetto.'",
+  "The word 'alphabet' comes from the first two letters of the Greek alphabet: alpha and beta.",
+  "Cleopatra lived closer in time to the Moon landing than to the construction of the Great Pyramid.",
+  "Oxford University is older than the Aztec Empire.",
+  "The Hawaiian language only has 13 letters.",
+  "There are more possible iterations of a game of chess than there are atoms in the known universe.",
+  "The 'dot' over the letter 'i' is called a tittle.",
+];
+
+// Achievement Definitions
+const ACHIEVEMENTS = [
+  { id: 'first_win', name: 'First Victory', desc: 'Complete your first quiz', icon: '🎯', condition: () => userProgress.totalGamesPlayed >= 1 },
+  { id: 'perfect_game', name: 'Perfect Score', desc: 'Get 100% accuracy in a quiz', icon: '💯', condition: () => userProgress.bestAccuracy >= 100 },
+  { id: 'speed_demon', name: 'Speed Demon', desc: 'Score over 2000 points in one game', icon: '⚡', condition: () => userProgress.highestScore >= 2000 },
+  { id: 'streak_5', name: 'Streak Master', desc: 'Get a 5-question streak', icon: '🔥', condition: () => userProgress.longestStreak >= 5 },
+  { id: 'scholar', name: 'Scholar', desc: 'Answer 100 questions total', icon: '📚', condition: () => userProgress.totalQuestionsAnswered >= 100 },
+  { id: 'explorer', name: 'World Explorer', desc: 'Study 50 flashcards', icon: '🗺️', condition: () => userProgress.totalStudyCards >= 50 },
+  { id: 'dedicated', name: 'Dedicated Learner', desc: 'Maintain a 7-day streak', icon: '📅', condition: () => userProgress.dailyStreakCount >= 7 },
+  { id: 'veteran', name: 'Veteran Explorer', desc: 'Play 25 games', icon: '🏆', condition: () => userProgress.totalGamesPlayed >= 25 },
+  { id: 'geography_expert', name: 'Geography Expert', desc: 'Answer 30 geography questions correctly', icon: '🌍', condition: () => userProgress.categoryStats.geography.correct >= 30 },
+  { id: 'history_buff', name: 'History Buff', desc: 'Answer 30 history questions correctly', icon: '⚔️', condition: () => userProgress.categoryStats.history.correct >= 30 },
+  { id: 'word_wizard', name: 'Word Wizard', desc: 'Answer 30 etymology questions correctly', icon: '📖', condition: () => userProgress.categoryStats.etymology.correct >= 30 },
+];
+
+// Load progress from localStorage
+function loadProgress() {
+  const saved = localStorage.getItem('worldExplorerProgress');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      userProgress = { ...userProgress, ...parsed };
+      updateDailyStreak();
+    } catch (e) {
+      console.error('Failed to load progress:', e);
+    }
+  }
+}
+
+// Save progress to localStorage
+function saveProgress() {
+  try {
+    localStorage.setItem('worldExplorerProgress', JSON.stringify(userProgress));
+  } catch (e) {
+    console.error('Failed to save progress:', e);
+  }
+}
+
+// Update daily streak
+function updateDailyStreak() {
+  const today = new Date().toDateString();
+  const lastPlayed = userProgress.lastPlayedDate;
+  
+  if (!lastPlayed) {
+    // First time playing
+    userProgress.dailyStreakCount = 1;
+    userProgress.lastPlayedDate = today;
+  } else if (lastPlayed === today) {
+    // Already played today, no change
+    return;
+  } else {
+    const lastDate = new Date(lastPlayed);
+    const todayDate = new Date(today);
+    const diffTime = Math.abs(todayDate - lastDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+      // Consecutive day
+      userProgress.dailyStreakCount++;
+      userProgress.lastPlayedDate = today;
+    } else {
+      // Streak broken
+      userProgress.dailyStreakCount = 1;
+      userProgress.lastPlayedDate = today;
+    }
+  }
+  saveProgress();
+}
+
+// Check and unlock achievements
+function checkAchievements() {
+  let newAchievements = [];
+  
+  ACHIEVEMENTS.forEach(achievement => {
+    if (!userProgress.achievements.includes(achievement.id) && achievement.condition()) {
+      userProgress.achievements.push(achievement.id);
+      newAchievements.push(achievement);
+    }
+  });
+  
+  if (newAchievements.length > 0) {
+    saveProgress();
+    showAchievementNotification(newAchievements);
+  }
+}
+
+// Show achievement notification
+function showAchievementNotification(achievements) {
+  achievements.forEach((achievement, index) => {
+    setTimeout(() => {
+      const notification = document.createElement('div');
+      notification.className = 'achievement-notification';
+      notification.innerHTML = `
+        <div class="achievement-icon">${achievement.icon}</div>
+        <div class="achievement-info">
+          <div class="achievement-title">Achievement Unlocked!</div>
+          <div class="achievement-name">${achievement.name}</div>
+          <div class="achievement-desc">${achievement.desc}</div>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.classList.add('show'), 100);
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }, 4000);
+    }, index * 5000); // Stagger multiple achievements
+  });
+}
+
+// Update category stats
+function updateCategoryStats(category, correct) {
+  const cat = category.toLowerCase();
+  if (userProgress.categoryStats[cat]) {
+    userProgress.categoryStats[cat].total++;
+    if (correct) {
+      userProgress.categoryStats[cat].correct++;
+    }
+  }
+}
+
+// Track study card view
+function trackStudyCard() {
+  userProgress.totalStudyCards++;
+  saveProgress();
+  checkAchievements();
+}
+
+// Initialize progress system
+loadProgress();
+updateDailyStreak();
+
+// Quiz Questions Bank
+const allQuizQuestions = [
+  // EASY
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "What is the largest continent on Earth?",
+    hint: "It covers about 30% of Earth's land area.",
+    options: ["Africa", "Asia", "North America", "Europe"],
+    answer: 1,
+    explanation: "Asia is the largest continent, covering about 44.5 million km² and home to over 4 billion people."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "Which river is the longest in the world?",
+    hint: "It flows through northeastern Africa.",
+    options: ["Amazon", "Yangtze", "Mississippi", "Nile"],
+    answer: 3,
+    explanation: "The Nile River, at about 6,650 km, is generally considered the world's longest river, flowing through 11 countries in Africa."
+  },
+  {
+    difficulty: 'easy',
+    category: 'History',
+    question: "In which year did World War II end?",
+    hint: "The atomic bombs were dropped this year.",
+    options: ["1943", "1944", "1945", "1946"],
+    answer: 2,
+    explanation: "World War II ended in 1945 — V-E Day (Victory in Europe) was May 8, and V-J Day (Victory over Japan) was September 2."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "What is the capital city of Australia?",
+    hint: "It's not Sydney or Melbourne!",
+    options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
+    answer: 2,
+    explanation: "Canberra is Australia's capital. It was purpose-built as a compromise between rivals Sydney and Melbourne, and became the capital in 1913."
+  },
+  {
+    difficulty: 'easy',
+    category: 'History',
+    question: "Which ancient wonder was located in Alexandria, Egypt?",
+    hint: "Sailors could see it from miles out at sea.",
+    options: ["The Colossus", "The Lighthouse", "The Hanging Gardens", "The Mausoleum"],
+    answer: 1,
+    explanation: "The Lighthouse of Alexandria, built around 280 BC on the island of Pharos, stood 100–140 meters tall and guided ships for centuries."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "Which ocean is the largest on Earth?",
+    hint: "It was named for its 'peaceful' waters.",
+    options: ["Atlantic", "Indian", "Pacific", "Arctic"],
+    answer: 2,
+    explanation: "The Pacific Ocean is the largest, covering more than 165 million km² — larger than all of Earth's landmass combined!"
+  },
+  {
+    difficulty: 'easy',
+    category: 'History',
+    question: "Who was the first person to walk on the Moon?",
+    hint: "He said it was 'one giant leap for mankind.'",
+    options: ["Buzz Aldrin", "Yuri Gagarin", "Neil Armstrong", "John Glenn"],
+    answer: 2,
+    explanation: "Neil Armstrong became the first human on the Moon on July 20, 1969, during NASA's Apollo 11 mission."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Etymology',
+    question: "The word 'telephone' comes from Greek roots meaning:",
+    hint: "Think about what a telephone does.",
+    options: ["Far sound", "Voice message", "Electric speech", "Distant talk"],
+    answer: 0,
+    explanation: "'Telephone' comes from Greek 'tele' (far) + 'phone' (sound/voice). Invented in the 1870s, the name literally means 'far sound.'"
+  },
+  {
+    difficulty: 'easy',
+    category: 'Etymology',
+    question: "What does the prefix 'bio-' mean?",
+    hint: "Think of biology, biography, biodegradable.",
+    options: ["Earth", "Life", "Study", "Natural"],
+    answer: 1,
+    explanation: "'Bio-' comes from the Greek word 'bios' meaning 'life.' It appears in biology (study of life), biography (life story), and many other words."
+  },
+  // MEDIUM
+  {
+    difficulty: 'medium',
+    category: 'History',
+    question: "Which empire was the largest contiguous land empire in history?",
+    hint: "It was founded by a great khan in the 13th century.",
+    options: ["Roman Empire", "British Empire", "Mongol Empire", "Ottoman Empire"],
+    answer: 2,
+    explanation: "The Mongol Empire (1206–1368) was the largest contiguous land empire ever, stretching from Korea to Eastern Europe under Genghis Khan and his successors."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Geography',
+    question: "Which country has the most natural lakes in the world?",
+    hint: "It's home to the world-famous maple leaf flag.",
+    options: ["Russia", "Canada", "Finland", "USA"],
+    answer: 1,
+    explanation: "Canada contains about 60% of the world's natural lakes — roughly 879,800 lakes, more than any other country on Earth."
+  },
+  {
+    difficulty: 'medium',
+    category: 'History',
+    question: "The Silk Road primarily connected which two regions?",
+    hint: "Trade goods included silk, spices, and precious gems.",
+    options: ["Europe & Africa", "China & Mediterranean", "India & Arabia", "Egypt & Persia"],
+    answer: 1,
+    explanation: "The Silk Road was a network of trade routes connecting China to the Mediterranean, fostering exchange of goods, culture, and ideas for over 1,500 years."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Etymology',
+    question: "The word 'sandwich' is named after:",
+    hint: "It's named after an 18th-century English aristocrat.",
+    options: ["A town in England", "The Earl of Sandwich", "A type of bread", "A chef's surname"],
+    answer: 1,
+    explanation: "The sandwich is named after John Montagu, 4th Earl of Sandwich, who in 1762 ordered meat between bread so he could eat without leaving the gambling table."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Etymology',
+    question: "What does 'democracy' literally mean in Greek?",
+    hint: "Break it down: 'demos' + 'kratos'.",
+    options: ["Rule of law", "People power", "Free choice", "Equal rights"],
+    answer: 1,
+    explanation: "'Democracy' comes from Greek 'demos' (people) + 'kratos' (power/rule), literally meaning 'power of the people.'"
+  },
+  // HARD
+  {
+    difficulty: 'hard',
+    category: 'Geography',
+    question: "Which country is home to the world's highest navigable lake?",
+    hint: "The lake sits on the border of two countries at 3,812m above sea level.",
+    options: ["Peru", "Bolivia", "Colombia", "Ecuador"],
+    answer: 1,
+    explanation: "Lake Titicaca, the world's highest navigable lake at 3,812m, sits on the border of Bolivia and Peru. Bolivia's side contains the larger portion."
+  },
+  {
+    difficulty: 'hard',
+    category: 'History',
+    question: "Which civilization built the ancient city of Petra?",
+    hint: "They were master traders who carved cities into rose-red rock.",
+    options: ["Phoenicians", "Assyrians", "Nabataeans", "Sumerians"],
+    answer: 2,
+    explanation: "Petra was built by the Nabataeans, an Arab civilization that flourished from the 4th century BC. The city was carved directly into the sandstone cliffs of modern-day Jordan."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Etymology',
+    question: "The word 'salary' comes from the Latin word for:",
+    hint: "Roman soldiers were paid in a valuable commodity.",
+    options: ["Silver", "Salt", "Gold", "Grain"],
+    answer: 1,
+    explanation: "'Salary' comes from Latin 'salarium,' derived from 'sal' (salt). Roman soldiers received an allowance to buy salt, a precious preservative in ancient times."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Etymology',
+    question: "What does 'sincere' literally mean in Latin?",
+    hint: "It relates to flawless Roman sculptures.",
+    options: ["Honest heart", "True word", "Without wax", "Pure intention"],
+    answer: 2,
+    explanation: "'Sincere' likely comes from Latin 'sine cera' (without wax). Roman sculptors would hide cracks with wax; quality work was sold 'without wax' — genuinely flawless."
+  },
+  // MORE EASY QUESTIONS
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "What is the smallest country in the world?",
+    hint: "It's located within Rome, Italy.",
+    options: ["Monaco", "Vatican City", "San Marino", "Liechtenstein"],
+    answer: 1,
+    explanation: "Vatican City is the world's smallest country at just 0.44 km². It's an independent city-state enclaved within Rome."
+  },
+  {
+    difficulty: 'easy',
+    category: 'History',
+    question: "Who invented the telephone?",
+    hint: "He made the first successful call in 1876.",
+    options: ["Thomas Edison", "Nikola Tesla", "Alexander Graham Bell", "Guglielmo Marconi"],
+    answer: 2,
+    explanation: "Alexander Graham Bell patented the telephone in 1876. His first words transmitted were 'Mr. Watson, come here, I want to see you.'"
+  },
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "Which mountain is the tallest in the world?",
+    hint: "It's located in the Himalayas between Nepal and Tibet.",
+    options: ["K2", "Mount Everest", "Kilimanjaro", "Denali"],
+    answer: 1,
+    explanation: "Mount Everest is Earth's highest mountain at 8,849 meters (29,032 feet) above sea level. It was named after surveyor George Everest."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Etymology',
+    question: "The word 'chocolate' comes from which language?",
+    hint: "Think of the ancient Aztec civilization.",
+    options: ["Spanish", "Nahuatl (Aztec)", "Portuguese", "Mayan"],
+    answer: 1,
+    explanation: "'Chocolate' comes from Nahuatl 'xocolatl' (bitter water). The Aztecs made a bitter beverage from cacao beans before Europeans sweetened it."
+  },
+  {
+    difficulty: 'easy',
+    category: 'History',
+    question: "In which year did the Titanic sink?",
+    hint: "It happened in the early 1900s on its maiden voyage.",
+    options: ["1910", "1912", "1914", "1918"],
+    answer: 1,
+    explanation: "The RMS Titanic sank on April 15, 1912, after hitting an iceberg. Over 1,500 people died in one of history's deadliest maritime disasters."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "What is the largest island in the world?",
+    hint: "It's located between the Arctic and Atlantic Oceans.",
+    options: ["Australia", "Greenland", "New Guinea", "Borneo"],
+    answer: 1,
+    explanation: "Greenland is the world's largest island at 2.166 million km². Australia is larger but considered a continent rather than an island."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Etymology',
+    question: "What does 'dinosaur' literally mean?",
+    hint: "From Greek 'deinos' + 'sauros'.",
+    options: ["Ancient lizard", "Terrible lizard", "Giant beast", "Old reptile"],
+    answer: 1,
+    explanation: "'Dinosaur' comes from Greek 'deinos' (terrible/fearfully great) + 'sauros' (lizard). Coined by Richard Owen in 1842."
+  },
+  {
+    difficulty: 'easy',
+    category: 'History',
+    question: "Who was the first U.S. President?",
+    hint: "His face is on the one-dollar bill.",
+    options: ["Thomas Jefferson", "John Adams", "George Washington", "Benjamin Franklin"],
+    answer: 2,
+    explanation: "George Washington served as the first President of the United States from 1789 to 1797 and is known as the 'Father of His Country.'"
+  },
+  {
+    difficulty: 'easy',
+    category: 'Geography',
+    question: "Which country has the most population?",
+    hint: "As of 2023, it surpassed another Asian giant.",
+    options: ["China", "India", "United States", "Indonesia"],
+    answer: 1,
+    explanation: "India became the world's most populous country in 2023, surpassing China with over 1.4 billion people."
+  },
+  {
+    difficulty: 'easy',
+    category: 'Etymology',
+    question: "What does 'photography' mean in Greek?",
+    hint: "Think about 'photo' and 'graphy'.",
+    options: ["Picture making", "Light writing", "Image capture", "Memory drawing"],
+    answer: 1,
+    explanation: "'Photography' comes from Greek 'photos' (light) + 'graphein' (to write), literally meaning 'writing with light.'"
+  },
+  // MORE MEDIUM QUESTIONS
+  {
+    difficulty: 'medium',
+    category: 'Geography',
+    question: "Which desert is the driest place on Earth?",
+    hint: "It's in South America, not in Africa or Asia.",
+    options: ["Sahara Desert", "Gobi Desert", "Atacama Desert", "Mojave Desert"],
+    answer: 2,
+    explanation: "The Atacama Desert in Chile is Earth's driest non-polar desert. Some weather stations there have never recorded rainfall."
+  },
+  {
+    difficulty: 'medium',
+    category: 'History',
+    question: "What ancient writing system was deciphered using the Rosetta Stone?",
+    hint: "Used by ancient Egyptians for monumental inscriptions.",
+    options: ["Cuneiform", "Hieroglyphics", "Linear B", "Sanskrit"],
+    answer: 1,
+    explanation: "Egyptian hieroglyphics were deciphered in 1822 by Jean-François Champollion using the Rosetta Stone, which had the same text in three scripts."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Etymology',
+    question: "The word 'avatar' originally comes from which religion?",
+    hint: "Think of a major religion from India.",
+    options: ["Buddhism", "Hinduism", "Jainism", "Sikhism"],
+    answer: 1,
+    explanation: "'Avatar' comes from Sanskrit 'avatara' meaning 'descent.' In Hinduism, it refers to a deity descending to Earth in bodily form."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Geography',
+    question: "The Dead Sea borders which two countries?",
+    hint: "One is Israel, the other is to the east.",
+    options: ["Israel & Egypt", "Israel & Syria", "Israel & Jordan", "Israel & Lebanon"],
+    answer: 2,
+    explanation: "The Dead Sea borders Israel to the west and Jordan to the east. At 430 meters below sea level, it's Earth's lowest elevation on land."
+  },
+  {
+    difficulty: 'medium',
+    category: 'History',
+    question: "Which civilization built Machu Picchu?",
+    hint: "This empire was based in modern-day Peru.",
+    options: ["Maya", "Aztec", "Inca", "Olmec"],
+    answer: 2,
+    explanation: "Machu Picchu was built by the Inca Empire around 1450 CE. It was abandoned during the Spanish conquest and rediscovered in 1911."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Etymology',
+    question: "What does 'paradise' literally mean in Old Persian?",
+    hint: "Think of an enclosed outdoor space.",
+    options: ["Heaven above", "Walled garden", "Sacred temple", "Golden palace"],
+    answer: 1,
+    explanation: "'Paradise' comes from Old Persian 'pairidaeza' (walled garden). It referred to royal enclosed parks before meaning heavenly paradise."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Geography',
+    question: "What is the longest mountain range in the world?",
+    hint: "It runs along the western coast of South America.",
+    options: ["Himalayas", "Rocky Mountains", "Andes", "Alps"],
+    answer: 2,
+    explanation: "The Andes mountain range stretches 7,000 km along South America's western edge, making it the world's longest continental mountain range."
+  },
+  {
+    difficulty: 'medium',
+    category: 'History',
+    question: "Who painted the ceiling of the Sistine Chapel?",
+    hint: "This Renaissance artist also sculpted David.",
+    options: ["Leonardo da Vinci", "Raphael", "Michelangelo", "Donatello"],
+    answer: 2,
+    explanation: "Michelangelo painted the Sistine Chapel ceiling between 1508-1512. The famous 'Creation of Adam' is part of this masterpiece."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Etymology',
+    question: "The word 'cappuccino' is named after:",
+    hint: "It relates to the color of their robes.",
+    options: ["A coffee plant", "Capuchin monks", "An Italian city", "A coffee maker"],
+    answer: 1,
+    explanation: "'Cappuccino' is named after Capuchin monks whose brown robes matched the drink's color. 'Cappuccio' means hood in Italian."
+  },
+  {
+    difficulty: 'medium',
+    category: 'Geography',
+    question: "Which strait separates Europe from Africa?",
+    hint: "It connects the Atlantic Ocean to the Mediterranean Sea.",
+    options: ["Bering Strait", "Strait of Hormuz", "Strait of Gibraltar", "Bosphorus Strait"],
+    answer: 2,
+    explanation: "The Strait of Gibraltar is just 13 km wide at its narrowest point, separating Spain (Europe) from Morocco (Africa)."
+  },
+  // MORE HARD QUESTIONS
+  {
+    difficulty: 'hard',
+    category: 'Geography',
+    question: "What is the only country that borders both the Caspian Sea and the Persian Gulf?",
+    hint: "It's located in the Middle East.",
+    options: ["Iraq", "Iran", "Azerbaijan", "Turkmenistan"],
+    answer: 1,
+    explanation: "Iran is the only country with coastlines on both the Caspian Sea (north) and the Persian Gulf (south), spanning about 1,800 km."
+  },
+  {
+    difficulty: 'hard',
+    category: 'History',
+    question: "The Battle of Thermopylae featured 300 warriors from which Greek city-state?",
+    hint: "Known for their military training from childhood.",
+    options: ["Athens", "Sparta", "Corinth", "Thebes"],
+    answer: 1,
+    explanation: "In 480 BC, 300 Spartan warriors led by King Leonidas held off the massive Persian army at Thermopylae for three days before being outflanked."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Etymology',
+    question: "What does 'quarantine' derive from?",
+    hint: "Think about the number of days ships waited.",
+    options: ["Latin 'quarter' (four)", "Italian 'forty days'", "French 'isolated'", "Spanish 'separate'"],
+    answer: 1,
+    explanation: "'Quarantine' comes from Italian 'quaranta giorni' (40 days), the period ships waited before docking during plague outbreaks in Venice."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Geography',
+    question: "Which African country has the most pyramids?",
+    hint: "It's northeast of Egypt, not Egypt itself.",
+    options: ["Egypt", "Sudan", "Libya", "Ethiopia"],
+    answer: 1,
+    explanation: "Sudan has over 200 ancient pyramids built by Nubian kings at Meroe, more than Egypt's roughly 120 pyramids."
+  },
+  {
+    difficulty: 'hard',
+    category: 'History',
+    question: "The Gutenberg printing press was invented in which century?",
+    hint: "It revolutionized Europe before Columbus reached America.",
+    options: ["13th century", "14th century", "15th century", "16th century"],
+    answer: 2,
+    explanation: "Johannes Gutenberg invented the movable-type printing press around 1440 (15th century), revolutionizing the spread of knowledge in Europe."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Etymology',
+    question: "The word 'lord' originally meant:",
+    hint: "From Old English, relating to bread.",
+    options: ["Land owner", "Bread keeper", "War chief", "Noble born"],
+    answer: 1,
+    explanation: "'Lord' comes from Old English 'hlaford' (bread keeper), from 'hlaf' (bread) + 'weard' (keeper/guardian). Lords provided food for their household."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Geography',
+    question: "What is the deepest lake in the world?",
+    hint: "Located in Siberia, Russia.",
+    options: ["Lake Tanganyika", "Crater Lake", "Lake Baikal", "Caspian Sea"],
+    answer: 2,
+    explanation: "Lake Baikal in Russia reaches 1,642 meters deep and holds 20% of Earth's unfrozen freshwater. It's also the world's oldest lake at 25 million years."
+  },
+  {
+    difficulty: 'hard',
+    category: 'History',
+    question: "Who was the first woman to win a Nobel Prize?",
+    hint: "She won it twice, in two different sciences.",
+    options: ["Rosalind Franklin", "Marie Curie", "Dorothy Hodgkin", "Ada Lovelace"],
+    answer: 1,
+    explanation: "Marie Curie won the Nobel Prize in Physics (1903) and Chemistry (1911). She remains the only person to win Nobels in two different sciences."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Etymology',
+    question: "The word 'coach' (as in sports coach) originated from:",
+    hint: "Think about a Hungarian town and transportation.",
+    options: ["A training method", "A town in Hungary", "A military rank", "A teaching style"],
+    answer: 1,
+    explanation: "'Coach' comes from Kocs, Hungary, where horse-drawn carriages were made. By 1830s, 'coach' meant tutor who 'carries' students through exams."
+  },
+  {
+    difficulty: 'hard',
+    category: 'Geography',
+    question: "The Strait of Magellan separates mainland South America from:",
+    hint: "A large island at the southern tip of the continent.",
+    options: ["Falkland Islands", "Tierra del Fuego", "Galapagos Islands", "Easter Island"],
+    answer: 1,
+    explanation: "The Strait of Magellan separates mainland Chile from Tierra del Fuego. Named after Ferdinand Magellan who navigated it in 1520."
+  },
+];
+
+// Curated flashcards (your original 90 cards)
+const curatedFlashcards = {
+  etymology: [
+    { front: "Ambulance", back: "From Latin 'ambulare' (to walk). Originally a mobile/walking hospital following armies in the field.", category: "Medical" },
+    { front: "Assassin", back: "From Arabic 'hashshashin' (hashish users). A medieval sect that allegedly used hashish before political killings.", category: "History" },
+    { front: "Barbarian", back: "From Greek 'barbaros' (foreign, literally 'bar-bar'). Greeks mocked foreign speech as sounding like 'bar bar bar.'", category: "Cultural" },
+    { front: "Breakfast", back: "Literally 'break fast' — the meal that breaks the overnight fasting period since your last meal.", category: "Daily Life" },
+    { front: "Calculate", back: "From Latin 'calculus' (pebble). Romans used pebbles on counting boards (abacus) to perform arithmetic.", category: "Mathematics" },
+    { front: "Carnival", back: "From Latin 'carne vale' (farewell to meat). The celebration before Lent when Christians gave up meat.", category: "Celebration" },
+    { front: "Cereal", back: "From Ceres, the Roman goddess of agriculture and grain. She gave her name to breakfast grains.", category: "Food" },
+    { front: "Clue", back: "From 'clew' (ball of thread). In Greek myth, Theseus used Ariadne's thread to navigate the Minotaur's labyrinth.", category: "Mythology" },
+    { front: "Companion", back: "From Latin 'com-' (with) + 'panis' (bread). Literally 'one who breaks bread with you.'", category: "Relationships" },
+    { front: "Cynic", back: "From Greek 'kynikos' (dog-like). Ancient Cynic philosophers rejected social norms and lived like stray dogs.", category: "Philosophy" },
+    { front: "Disaster", back: "From Italian 'dis-' (bad) + 'astro' (star). Literally 'bad star' — misfortune blamed on unfavorable astrology.", category: "Astronomy" },
+    { front: "Enthusiasm", back: "From Greek 'en' (in) + 'theos' (god). Originally meant 'possessed by a god' or divine inspiration.", category: "Emotion" },
+    { front: "Eureka", back: "Greek 'heurēka' (I have found it!). Archimedes' cry upon discovering water displacement in his bath.", category: "Science" },
+    { front: "Galaxy", back: "From Greek 'galaxias' (milky). The Milky Way looked like spilled milk across the night sky.", category: "Astronomy" },
+    { front: "Gossip", back: "From Old English 'godsibb' (god-sibling/godparent). Godparents chatted at baptisms; later meant idle talk.", category: "Social" },
+    { front: "Hazard", back: "From Arabic 'al-zahr' (the die/dice). Came to English via a dice game; risk-taking in gambling.", category: "Games" },
+    { front: "Humble", back: "From Latin 'humus' (earth/ground). To be humble is to be 'grounded' or close to the earth.", category: "Character" },
+    { front: "Infant", back: "From Latin 'in-' (not) + 'fari' (to speak). Literally 'one who cannot speak yet.'", category: "Development" },
+    { front: "Journey", back: "From French 'journée' (day's work/travel). Originally the distance traveled in one day.", category: "Travel" },
+    { front: "Jumbo", back: "From Jumbo the elephant, a famous 19th-century circus elephant. His massive size made his name synonymous with 'huge.'", category: "Animals" },
+    { front: "Lunch", back: "Possibly from 'lump' or 'nuncheon' (noon drink). Originally a light between-meals snack, not a main meal.", category: "Food" },
+    { front: "Malaria", back: "From Italian 'mala aria' (bad air). People thought the disease came from swamp vapors before discovering mosquitoes.", category: "Medical" },
+    { front: "Marathon", back: "From the Greek town Marathon. After the 490 BC battle, Pheidippides ran 26 miles to Athens with news of victory.", category: "Sports" },
+    { front: "Museum", back: "From Greek 'mouseion' (shrine of the Muses). A temple dedicated to the nine goddesses of arts and sciences.", category: "Culture" },
+    { front: "Nightmare", back: "From Old English 'mare' (demon). A 'nightmare' was originally a demon that sat on sleepers' chests, causing bad dreams.", category: "Folklore" },
+    { front: "Okay/OK", back: "Likely from 'oll korrect' (humorous misspelling of 'all correct') in 1830s Boston slang. Became widespread in 1840s.", category: "Slang" },
+    { front: "Panic", back: "From Pan, Greek god of wild nature. His sudden appearances in forests caused irrational terror in travelers.", category: "Mythology" },
+    { front: "Quarantine", back: "From Italian 'quaranta giorni' (40 days). Ships waited 40 days before docking during plague outbreaks.", category: "Medical" },
+    { front: "Robot", back: "From Czech 'robota' (forced labor). Coined by Karel Čapek in his 1920 play 'R.U.R.' about artificial workers.", category: "Technology" },
+    { front: "Sabotage", back: "From French 'sabot' (wooden shoe). Workers threw shoes into machinery to protest, or worked clumsily in cheap shoes.", category: "Labor" },
+    { front: "Sarcasm", back: "From Greek 'sarkazein' (to tear flesh). Originally meant to 'speak bitterly,' like tearing flesh with words.", category: "Language" },
+    { front: "School", back: "From Greek 'skholē' (leisure). Education was a leisure activity for privileged Greeks who didn't need to work.", category: "Education" },
+    { front: "Serendipity", back: "Coined by Horace Walpole in 1754 from 'The Three Princes of Serendip' — finding good things by accident.", category: "Literature" },
+    { front: "Shampoo", back: "From Hindi 'chāmpo' (press/massage). British colonials adopted the Indian head-massage practice and term.", category: "Grooming" },
+    { front: "Silhouette", back: "From Étienne de Silhouette, an 18th-century French finance minister. His cheap portrait style (shadow outlines) mocked his austerity policies.", category: "Art" },
+    { front: "Symposium", back: "From Greek 'sym-' (together) + 'posis' (drinking). An academic drinking party where Greeks discussed philosophy.", category: "Ancient Greece" },
+    { front: "Trivia", back: "From Latin 'tri-' (three) + 'via' (roads). Trivial matters discussed at crossroads where three roads met.", category: "Social" },
+    { front: "Vaccine", back: "From Latin 'vacca' (cow). Edward Jenner used cowpox to immunize against smallpox in 1796.", category: "Medical" },
+    { front: "Vandalism", back: "From the Vandals, a Germanic tribe that sacked Rome in 455 AD. Their destruction became synonymous with senseless damage.", category: "History" },
+    { front: "Utopia", back: "Coined by Thomas More in 1516 from Greek 'ou' (not) + 'topos' (place). Literally 'no-place' — an ideal society that doesn't exist.", category: "Literature" },
+    { front: "Zodiac", back: "From Greek 'zodiakos kyklos' (circle of animals). Most constellations in the zodiac are animals.", category: "Astronomy" },
+    { front: "Escape", back: "From Latin 'ex-' (out) + 'cappa' (cape/cloak). To slip out of your cloak/cape to get away from capture.", category: "Action" },
+    { front: "Tantalize", back: "From Tantalus in Greek myth, punished in Hades with fruit/water just out of reach — eternal temptation.", category: "Mythology" },
+    { front: "Salary", back: "From Latin 'salarium' — salt money. Roman soldiers' allowance to buy salt, a valuable preservative.", category: "Commerce" },
+    { front: "Sincere", back: "Possibly from Latin 'sine cera' (without wax). Roman sculptors hid flaws with wax; 'sincere' work was flawless.", category: "Art" },
+    { front: "Hippopotamus", back: "From Greek 'hippos' (horse) + 'potamos' (river). Literally 'river horse' — what Greeks called Nile hippos.", category: "Animals" },
+    { front: "Denim", back: "From 'de Nîmes' (from Nîmes). A sturdy fabric made in Nîmes, France. Jeans = 'Genes' (Genoa, Italy).", category: "Fashion" },
+    { front: "Dashboard", back: "From horse carriages. A board in front to block mud 'dashing' up from horses' hooves. Now cars' instrument panel.", category: "Transportation" },
+    { front: "Boycott", back: "From Charles Boycott, an Irish land agent in 1880. Tenants refused to work for him — the first organized 'boycott.'", category: "Politics" },
+    { front: "Algorithm", back: "From al-Khwarizmi, 9th-century Persian mathematician. His name became Latinized into 'algorithm' — a problem-solving procedure.", category: "Mathematics" },
+    { front: "Bonfire", back: "From 'bone fire.' Medieval celebrations burned bones of animals as part of festivities; later evolved to wood fires.", category: "Celebration" },
+    { front: "Atlas", back: "From Greek Titan Atlas, condemned to hold up the sky. Maps bore his image, so map books became 'atlases.'", category: "Mythology" },
+    { front: "Mentor", back: "From Mentor in Homer's Odyssey, who guided Odysseus' son. Now means wise advisor or teacher.", category: "Literature" },
+    { front: "Quarantine", back: "From Italian 'quaranta giorni' (40 days). Ships waited 40 days before docking during plague outbreaks in Venice.", category: "Medical" },
+    { front: "Lunatic", back: "From Latin 'luna' (moon). People once believed the moon's phases caused madness and erratic behavior.", category: "Astronomy" },
+    { front: "Sandwich", back: "From Earl of Sandwich who ordered meat between bread so he could eat without leaving the gambling table (1762).", category: "Food" },
+    { front: "Deadline", back: "From American Civil War prison camps. A line prisoners couldn't cross or they'd be shot dead.", category: "Military" },
+    { front: "Gymnasium", back: "From Greek 'gymnazein' (to train naked). Ancient Greek athletes trained without clothes; 'gymnos' means naked.", category: "Sports" },
+    { front: "Nostalgia", back: "From Greek 'nostos' (homecoming) + 'algos' (pain). Coined in 1688 for the pain of homesickness.", category: "Medical" },
+    { front: "Boycott", back: "From Charles Boycott, Irish land agent in 1880. Tenants refused to work for him — first organized boycott.", category: "Politics" },
+    { front: "Panic", back: "From Pan, Greek god of wild nature. His sudden forest appearances caused irrational terror in travelers.", category: "Mythology" },
+    { front: "Muscle", back: "From Latin 'musculus' (little mouse). Flexing biceps looked like a mouse moving under the skin.", category: "Anatomy" },
+    { front: "Candidate", back: "From Latin 'candidatus' (clothed in white). Roman politicians wore white togas when campaigning for office.", category: "Politics" },
+    { front: "Butterfly", back: "Folk etymology: 'flutter by' became 'butterfly.' Or from Old English belief that witches stole butter as butterflies.", category: "Animals" },
+    { front: "Planet", back: "From Greek 'planetes' (wanderer). Ancient astronomers noticed these 'stars' moved differently across the sky.", category: "Astronomy" },
+    { front: "Admiral", back: "From Arabic 'amir al-' (commander of). European sailors adopted it from Arab naval commanders.", category: "Military" },
+    { front: "Paradise", back: "From Old Persian 'pairidaeza' (walled garden). Meant royal enclosed park before becoming heavenly paradise.", category: "Religion" },
+    { front: "Thug", back: "From Hindi 'thag' (deceiver/swindler). Indian gangs who robbed travelers; British colonials brought word to English.", category: "Crime" },
+    { front: "Helicopter", back: "From Greek 'helix' (spiral) + 'pteron' (wing). Literally 'spiral wing' — not 'heli' + 'copter.'", category: "Technology" },
+    { front: "Checkmate", back: "From Persian 'shah mat' (the king is dead). Chess term meaning the king cannot escape capture.", category: "Games" },
+  ],
+  history: [
+    { front: "When did the Roman Empire fall?", back: "476 AD (Western Rome). The last emperor Romulus Augustulus was deposed by Germanic king Odoacer. Eastern Rome (Byzantine) lasted until 1453.", category: "Ancient" },
+    { front: "Who was Hammurabi?", back: "Babylonian king (1792-1750 BC) famous for Hammurabi's Code — one of the earliest written legal codes with 'eye for an eye' justice.", category: "Ancient" },
+    { front: "What was the Silk Road?", back: "Ancient trade network connecting China to the Mediterranean (2nd century BC–15th century AD). Exchanged silk, spices, ideas, and religions.", category: "Trade" },
+    { front: "When was the Magna Carta signed?", back: "1215 AD in England. King John was forced to sign, limiting royal power and establishing rights — foundation of constitutional law.", category: "Medieval" },
+    { front: "What was the Black Death?", back: "Bubonic plague pandemic (1347-1353) that killed 30-60% of Europe's population. Spread via fleas on rats from trade ships.", category: "Medieval" },
+    { front: "Who was Genghis Khan?", back: "Founder of the Mongol Empire (1206). United nomadic tribes and created the largest contiguous land empire in history (13th century).", category: "Empires" },
+    { front: "What sparked WWI?", back: "Assassination of Archduke Franz Ferdinand in Sarajevo (June 28, 1914). Triggered alliances: Austria-Hungary vs Serbia, then all of Europe.", category: "Modern" },
+    { front: "What was D-Day?", back: "June 6, 1944 — Allied invasion of Normandy, France. Largest amphibious assault in history, turning point of WWII in Europe.", category: "Modern" },
+    { front: "When did the Berlin Wall fall?", back: "November 9, 1989. After 28 years dividing East and West Berlin, borders opened — symbolic end of Cold War. Germany reunified in 1990.", category: "Modern" },
+    { front: "What was the Renaissance?", back: "Cultural rebirth in Europe (14th-17th centuries). Revival of classical learning, art, science. Key figures: da Vinci, Michelangelo, Shakespeare.", category: "Cultural" },
+    { front: "Who was Cleopatra?", back: "Last active pharaoh of Egypt (51-30 BC). Allied with Julius Caesar and Mark Antony. Egypt became Roman province after her death.", category: "Ancient" },
+    { front: "What was the Rosetta Stone?", back: "1799 discovery in Egypt with same text in Greek, Demotic, and hieroglyphics. Unlocked ability to read ancient Egyptian writing.", category: "Archaeology" },
+    { front: "What was the Industrial Revolution?", back: "Period of rapid industrialization (1760-1840). Started in Britain — steam power, factories, urbanization transformed society and economy.", category: "Economic" },
+    { front: "Who was Napoleon Bonaparte?", back: "French military leader and emperor (1804-1814/15). Conquered most of Europe, spread revolutionary ideals, exiled to Elba then St. Helena.", category: "Modern" },
+    { front: "What was the Cold War?", back: "Geopolitical tension between USA and USSR (1947-1991). Ideological warfare — capitalism vs communism — nuclear arms race, proxy wars.", category: "Modern" },
+    { front: "What was the Treaty of Versailles?", back: "1919 peace treaty ending WWI. Harsh terms on Germany (reparations, territory loss) contributed to economic crisis and rise of Hitler.", category: "Modern" },
+    { front: "What was the Apollo 11 mission?", back: "First manned moon landing (July 20, 1969). Neil Armstrong and Buzz Aldrin walked on the Moon; 'one giant leap for mankind.'", category: "Space" },
+    { front: "What was the Great Depression?", back: "Severe worldwide economic depression (1929-1939). Started with 1929 stock market crash, massive unemployment, poverty, bank failures.", category: "Economic" },
+    { front: "Who built the Great Wall of China?", back: "Built over centuries by multiple dynasties, mainly Qin (221-206 BC) and Ming (1368-1644). Defense against northern invasions, 13,000+ miles long.", category: "Ancient" },
+    { front: "What was the Boston Tea Party?", back: "1773 political protest. American colonists dumped British tea into Boston Harbor to protest taxation without representation. Helped spark Revolution.", category: "American" },
+    { front: "Who was Julius Caesar?", back: "Roman military leader and dictator (100-44 BC). Conquered Gaul, crossed Rubicon, assassinated on Ides of March. 'Et tu, Brute?'", category: "Ancient" },
+    { front: "What was the Louisiana Purchase?", back: "1803 land deal where USA bought ~827,000 sq miles from France for $15 million. Doubled the size of the United States.", category: "American" },
+    { front: "What was the Space Race?", back: "Cold War competition (1955-1975) between USA and USSR for spaceflight supremacy. Culminated in Moon landing and satellite technology.", category: "Modern" },
+    { front: "Who was Queen Victoria?", back: "Queen of UK (1837-1901). Longest-reigning British monarch until Elizabeth II. Victorian era named after her, British Empire's peak.", category: "Modern" },
+    { front: "What was the French Revolution?", back: "Period of radical change in France (1789-1799). Overthrew monarchy, established republic, Reign of Terror, rise of Napoleon.", category: "Modern" },
+    { front: "What were the Crusades?", back: "Series of religious wars (1095-1291) by European Christians to reclaim Holy Land from Muslim control. Led by various European monarchs.", category: "Medieval" },
+    { front: "Who was Martin Luther King Jr.?", back: "American civil rights leader (1929-1968). Led nonviolent protests, 'I Have a Dream' speech, assassinated in Memphis. Nobel Peace Prize 1964.", category: "Modern" },
+    { front: "What was Pompeii?", back: "Ancient Roman city destroyed by Mount Vesuvius eruption in 79 AD. Buried in ash, preserved for centuries, rediscovered in 1748.", category: "Ancient" },
+    { front: "What was the Reformation?", back: "16th-century religious movement started by Martin Luther (1517). Split Christianity into Catholic and Protestant branches across Europe.", category: "Cultural" },
+  ],
+  geography: [
+    { front: "What is the world's largest desert?", back: "Antarctica (14 million km²). A desert is defined by low precipitation, not temperature. Sahara is largest hot desert (9 million km²).", category: "Physical" },
+    { front: "What is the deepest point on Earth?", back: "Challenger Deep in Mariana Trench (Pacific Ocean) — 10,994 meters (36,070 ft) below sea level. Discovered 1951, first visited 1960.", category: "Oceans" },
+    { front: "Which river has the largest drainage basin?", back: "Amazon River (7 million km²). Though the Nile is longer, the Amazon carries more water than the next 7 largest rivers combined.", category: "Rivers" },
+    { front: "What causes the seasons?", back: "Earth's axial tilt (23.5°) as it orbits the Sun. When Northern Hemisphere tilts toward Sun = summer; away = winter. Not distance from Sun!", category: "Climate" },
+    { front: "What is a fjord?", back: "A deep, narrow inlet carved by glaciers during ice ages. When glaciers retreated, sea water flooded valleys. Common in Norway, Iceland, New Zealand.", category: "Landforms" },
+    { front: "Where is the Ring of Fire?", back: "Horseshoe-shaped zone around Pacific Ocean rim. 75% of world's volcanoes and 90% of earthquakes due to tectonic plate boundaries.", category: "Geology" },
+    { front: "What country has the most islands?", back: "Sweden (267,570 islands). Followed by Norway and Finland. Canada has longest coastline due to its islands.", category: "Islands" },
+    { front: "What is a rain shadow?", back: "Dry area on the leeward side of mountains. Mountains block rain clouds; moisture falls on windward side, leaving other side arid.", category: "Climate" },
+    { front: "What's the difference between weather and climate?", back: "Weather = short-term atmospheric conditions (daily). Climate = long-term average weather patterns (decades). 'Climate is what you expect, weather is what you get.'", category: "Climate" },
+    { front: "What is the Great Barrier Reef?", back: "World's largest coral reef system off Queensland, Australia. 2,300 km long, visible from space, home to 1,500+ fish species. UNESCO World Heritage site.", category: "Ecosystems" },
+    { front: "What causes tides?", back: "Gravitational pull of Moon (and to lesser extent, Sun) on Earth's oceans. Moon's gravity creates bulge; Earth rotates under it = 2 high/low tides daily.", category: "Oceans" },
+    { front: "What is permafrost?", back: "Permanently frozen ground in polar/alpine regions. Soil stays below 0°C for 2+ years. Thawing permafrost releases methane, accelerating climate change.", category: "Climate" },
+    { front: "What are the 7 continents?", back: "Asia, Africa, North America, South America, Antarctica, Europe, Oceania/Australia. Some models combine Europe+Asia as Eurasia (6 continents).", category: "Continents" },
+    { front: "What is a tsunami?", back: "Giant ocean wave caused by underwater earthquakes, volcanic eruptions, or landslides. Can travel 500+ mph, grow to 100+ feet near shore.", category: "Oceans" },
+    { front: "What is the Equator?", back: "Imaginary line at 0° latitude, equidistant from poles. Divides Earth into Northern and Southern Hemispheres. Sun directly overhead twice yearly.", category: "Coordinates" },
+    { front: "What are the tropics?", back: "Region between Tropic of Cancer (23.5°N) and Tropic of Capricorn (23.5°S). Warm year-round; Sun directly overhead at least once annually.", category: "Climate" },
+    { front: "What is a delta?", back: "Landform where river splits into smaller streams before entering ocean/lake. Sediment deposits create triangular shape. Nile, Mississippi, Ganges deltas.", category: "Landforms" },
+    { front: "What is the water cycle?", back: "Continuous movement: evaporation (water→vapor), condensation (vapor→clouds), precipitation (rain/snow), collection (oceans/lakes), repeat.", category: "Systems" },
+    { front: "What are the Great Lakes?", back: "5 interconnected freshwater lakes on US-Canada border: Superior, Michigan, Huron, Erie, Ontario. 21% of world's fresh surface water.", category: "Lakes" },
+    { front: "What is an atoll?", back: "Ring-shaped coral reef or island encircling a lagoon. Forms when volcano sinks, but coral continues growing, eventually leaving just the reef ring.", category: "Islands" },
+    { front: "What is the Aurora Borealis?", back: "Northern Lights - natural light display in polar regions. Caused by solar particles colliding with Earth's atmosphere, creating colorful waves.", category: "Phenomena" },
+    { front: "What is the Sahara Desert?", back: "World's largest hot desert (9 million km²) covering most of North Africa. Temperatures reach 58°C; receives less than 3 inches annual rain.", category: "Deserts" },
+    { front: "What are the Galápagos Islands?", back: "Volcanic archipelago 1,000 km off Ecuador. Famous for unique wildlife that inspired Darwin's theory of evolution. UNESCO World Heritage site.", category: "Islands" },
+    { front: "What is the Mediterranean Sea?", back: "Sea connected to Atlantic Ocean, surrounded by Mediterranean Basin. Bordered by Europe, Africa, and Asia. Cradle of ancient civilizations.", category: "Oceans" },
+    { front: "What is Mount Kilimanjaro?", back: "Africa's highest mountain (5,895m) in Tanzania. A dormant volcano with three cones. Famous for snow-capped peak near the equator.", category: "Mountains" },
+    { front: "What is the Panama Canal?", back: "Artificial waterway connecting Atlantic and Pacific Oceans. Built 1904-1914, 82 km long. Revolutionized maritime trade by eliminating South America voyage.", category: "Engineering" },
+    { front: "What is the Gobi Desert?", back: "Large desert region in northern China and southern Mongolia. Cold desert with temperatures from -40°C to 45°C. Contains dinosaur fossils.", category: "Deserts" },
+    { front: "What are glaciers?", back: "Massive rivers of ice formed from compressed snow. Move slowly downhill via gravity, carve valleys, create moraines. Hold 69% of Earth's freshwater.", category: "Ice" },
+    { front: "What is the Great Rift Valley?", back: "Massive geological trench running 6,000 km from Syria to Mozambique. Formed by tectonic plates pulling apart. Contains many African lakes.", category: "Geology" },
+  ]
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showStudyMode() {
+  showScreen('studyScreen');
+  document.getElementById('categorySelection').style.display = 'block';
+  document.getElementById('flashcardContainer').style.display = 'none';
+}
+
+function toggleStudyMode() {
+  isAIMode = !isAIMode;
+  const toggle = document.getElementById('modeToggle');
+  const curatedLabel = document.getElementById('curatedLabel');
+  const aiLabel = document.getElementById('aiLabel');
+  const aiInfo = document.getElementById('aiModeInfo');
+  const startBtn = document.getElementById('startStudyBtn');
+  
+  if (isAIMode) {
+    toggle.classList.add('ai-mode');
+    curatedLabel.classList.remove('active');
+    aiLabel.classList.add('active');
+    aiInfo.style.display = 'block';
+    startBtn.textContent = 'Generate AI Deck ✨';
+    startBtn.classList.add('generate-btn');
+  } else {
+    toggle.classList.remove('ai-mode');
+    curatedLabel.classList.add('active');
+    aiLabel.classList.remove('active');
+    aiInfo.style.display = 'none';
+    startBtn.textContent = 'Start Studying';
+    startBtn.classList.remove('generate-btn');
+  }
+}
+
+function selectCategory(cat) {
+  selectedCategory = cat;
+  document.querySelectorAll('#categorySelect .diff-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function startStudying() {
+  if (isAIMode) {
+    generateDeck();
+  } else {
+    loadCuratedDeck();
+  }
+}
+
+function loadCuratedDeck() {
+  studyDeck = [...curatedFlashcards[selectedCategory]];
+  currentCard = 0;
+  
+  document.getElementById('categorySelection').style.display = 'none';
+  document.getElementById('flashcardContainer').style.display = 'block';
+  document.getElementById('shuffleBtn').style.display = 'inline-block';
+  document.getElementById('generateMoreBtn').style.display = 'none';
+  
+  renderFlashcard();
+}
+
+async function generateDeck() {
+  const btn = document.getElementById('startStudyBtn');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> Generating...';
+
+  const prompts = {
+    etymology: `You are an etymology expert. Generate exactly 10 unique and fascinating flashcards about word origins.
+
+For each flashcard, provide:
+1. FRONT: A single word (preferably interesting, not too common)
+2. BACK: The etymology explanation (origin language, root words, literal meaning, historical context)
+3. CATEGORY: A subcategory (e.g., "Medical", "Mythology", "Science", "Food")
+4. SOURCE: Brief source attribution (e.g., "etymonline.com", "Oxford Dictionary")
+
+Use authoritative etymology sources. Focus on words with interesting stories. Make explanations concise but engaging (2-3 sentences max).
+
+Return ONLY a valid JSON array with this exact structure:
+[
+  {
+    "front": "Word",
+    "back": "Etymology explanation here...",
+    "category": "Subcategory",
+    "source": "Source name"
+  }
+]
+
+No markdown, no code blocks, just the JSON array.`,
+
+    history: `You are a history expert. Generate exactly 10 unique and educational flashcards about historical events, figures, or concepts.
+
+For each flashcard, provide:
+1. FRONT: A question about a historical event, person, or concept
+2. BACK: A detailed answer with dates, context, and significance (2-4 sentences)
+3. CATEGORY: A subcategory (e.g., "Ancient", "Medieval", "Modern", "Military", "Cultural")
+4. SOURCE: Brief source reference (e.g., "Historical records", "Encyclopedia Britannica")
+
+Cover diverse periods and regions. Focus on significant, verifiable historical facts. Make answers educational and engaging.
+
+Return ONLY a valid JSON array with this exact structure:
+[
+  {
+    "front": "Question about history?",
+    "back": "Detailed answer with dates and context...",
+    "category": "Subcategory",
+    "source": "Source name"
+  }
+]
+
+No markdown, no code blocks, just the JSON array.`,
+
+    geography: `You are a geography expert. Generate exactly 10 unique and educational flashcards about physical geography, countries, landmarks, or natural phenomena.
+
+For each flashcard, provide:
+1. FRONT: A question about geography (physical features, countries, climate, landforms, etc.)
+2. BACK: A detailed answer with facts, measurements, locations, and context (2-4 sentences)
+3. CATEGORY: A subcategory (e.g., "Physical", "Climate", "Oceans", "Landforms", "Countries")
+4. SOURCE: Brief source reference (e.g., "National Geographic", "Geographic data")
+
+Cover diverse topics. Include specific facts and measurements where relevant. Make answers educational and engaging.
+
+Return ONLY a valid JSON array with this exact structure:
+[
+  {
+    "front": "Question about geography?",
+    "back": "Detailed answer with facts and context...",
+    "category": "Subcategory",
+    "source": "Source name"
+  }
+]
+
+No markdown, no code blocks, just the JSON array.`
+  };
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4000,
+        messages: [
+          {
+            role: "user",
+            content: prompts[selectedCategory]
+          }
+        ],
+        tools: [
+          {
+            type: "web_search_20250305",
+            name: "web_search"
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    let jsonText = '';
+    for (const block of data.content) {
+      if (block.type === 'text') {
+        jsonText += block.text;
+      }
+    }
+
+    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const cards = JSON.parse(jsonText);
+    
+    if (!Array.isArray(cards) || cards.length === 0) {
+      throw new Error('Invalid response format');
+    }
+
+    studyDeck = cards;
+    currentCard = 0;
+    
+    document.getElementById('categorySelection').style.display = 'none';
+    document.getElementById('flashcardContainer').style.display = 'block';
+    document.getElementById('shuffleBtn').style.display = 'none';
+    document.getElementById('generateMoreBtn').style.display = 'inline-block';
+    
+    renderFlashcard();
+
+  } catch (error) {
+    console.error('Generation error:', error);
+    alert('Failed to generate flashcards. Please try again. Error: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+function renderFlashcard() {
+  if (studyDeck.length === 0) return;
+  
+  const card = studyDeck[currentCard];
+  document.getElementById('cardFront').textContent = card.front;
+  document.getElementById('cardBack').textContent = card.back;
+  document.getElementById('cardCategory').textContent = card.category || '';
+  document.getElementById('cardSource').textContent = card.source ? `Source: ${card.source}` : '';
+  document.getElementById('studyProgress').textContent = `${currentCard + 1}/${studyDeck.length}`;
+  
+  document.getElementById('flashcardInner').classList.remove('flipped');
+  isFlipped = false;
+  
+  document.getElementById('prevBtn').disabled = currentCard === 0;
+  document.getElementById('nextBtn').disabled = currentCard === studyDeck.length - 1;
+}
+
+function flipCard() {
+  const inner = document.getElementById('flashcardInner');
+  const wasFlipped = isFlipped;
+  inner.classList.toggle('flipped');
+  isFlipped = !isFlipped;
+  
+  // Track when card is flipped to back (studying)
+  if (!wasFlipped && isFlipped) {
+    trackStudyCard();
+  }
+}
+
+function nextCard() {
+  if (currentCard < studyDeck.length - 1) {
+    currentCard++;
+    renderFlashcard();
+  }
+}
+
+function prevCard() {
+  if (currentCard > 0) {
+    currentCard--;
+    renderFlashcard();
+  }
+}
+
+function shuffleDeck() {
+  studyDeck = studyDeck.sort(() => Math.random() - 0.5);
+  currentCard = 0;
+  renderFlashcard();
+}
+
+function backToCategorySelect() {
+  document.getElementById('categorySelection').style.display = 'block';
+  document.getElementById('flashcardContainer').style.display = 'none';
+}
+
+// ─── QUIZ GAME FUNCTIONS ─────────────────────────────────────────
+function setDiff(d) {
+  quizDifficulty = d;
+  document.querySelectorAll('#startScreen .diff-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function pickQuizQuestions() {
+  let pool;
+  
+  // Check if adaptive mode should be enabled (mixed difficulty)
+  if (quizDifficulty === 'mixed') {
+    adaptiveDifficulty = true;
+    currentAdaptiveLevel = 'medium'; // Start at medium
+    performanceHistory = [];
+    
+    // Build adaptive question set
+    const questions = [];
+    for (let i = 0; i < TOTAL_Q; i++) {
+      const question = getAdaptiveQuestion();
+      questions.push(question);
+    }
+    return questions;
+  } else {
+    adaptiveDifficulty = false;
+    
+    if (quizDifficulty === 'easy') pool = allQuizQuestions.filter(q => q.difficulty === 'easy');
+    else if (quizDifficulty === 'hard') pool = allQuizQuestions.filter(q => q.difficulty === 'hard' || q.difficulty === 'medium');
+    else pool = [...allQuizQuestions];
+
+    const shuffled = pool.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(TOTAL_Q, shuffled.length));
+    
+    // Track these questions as asked
+    selected.forEach(q => askedQuestions.push(q.question));
+    
+    return selected;
+  }
+}
+
+function startGame() {
+  quizQuestions = pickQuizQuestions();
+  currentQuestion = 0; 
+  quizScore = 0; 
+  quizStreak = 0; 
+  bestQuizStreak = 0; 
+  correctAnswers = 0;
+  askedQuestions = []; // Reset question tracking
+  showScreen('gameScreen');
+  updateQuizStats();
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  answered = false;
+  
+  // For adaptive mode, get next question dynamically
+  if (adaptiveDifficulty && currentQuestion > 0) {
+    quizQuestions[currentQuestion] = getAdaptiveQuestion();
+  }
+  
+  const q = quizQuestions[currentQuestion];
+  const area = document.getElementById('questionArea');
+
+  area.style.animation = 'none';
+  area.offsetHeight;
+  area.style.animation = '';
+
+  document.getElementById('questionCounter').textContent = `Question ${currentQuestion + 1} of ${quizQuestions.length}`;
+  document.getElementById('categoryLabel').textContent = q.category;
+  document.getElementById('questionText').textContent = q.question;
+  document.getElementById('questionHint').textContent = q.hint ? `💡 ${q.hint}` : '';
+
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+    btn.onclick = () => selectQuizAnswer(i);
+    grid.appendChild(btn);
+  });
+
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback';
+  fb.style.opacity = '0';
+  document.getElementById('nextBtn').className = 'next-btn';
+
+  document.getElementById('progressFill').style.width = `${(currentQuestion / quizQuestions.length) * 100}%`;
+
+  startQuizTimer();
+}
+
+function startQuizTimer() {
+  clearInterval(timerInterval);
+  timeLeft = TIME_LIMIT;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (!answered) timeUp();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  document.getElementById('timerText').textContent = timeLeft;
+  const ring = document.getElementById('timerRing');
+  const circumference = 138;
+  const offset = circumference * (1 - timeLeft / TIME_LIMIT);
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = timeLeft > 8 ? 'var(--gold)' : timeLeft > 4 ? '#e07a20' : 'var(--crimson)';
+}
+
+function timeUp() {
+  answered = true;
+  quizStreak = 0;
+  updateQuizStats();
+  revealQuizAnswer();
+  showQuizFeedback(false, `⏰ Time's up! The correct answer was: <strong>${quizQuestions[currentQuestion].options[quizQuestions[currentQuestion].answer]}</strong>. ${quizQuestions[currentQuestion].explanation}`);
+  document.getElementById('nextBtn').className = 'next-btn show';
+}
+
+function selectQuizAnswer(idx) {
+  if (answered) return;
+  answered = true;
+  const responseTime = TIME_LIMIT - timeLeft; // How long they took
+  clearInterval(timerInterval);
+
+  const q = quizQuestions[currentQuestion];
+  const btns = document.querySelectorAll('.option-btn');
+  const isCorrect = idx === q.answer;
+
+  btns[idx].classList.add(isCorrect ? 'correct' : 'wrong');
+
+  if (isCorrect) {
+    const timeBonus = Math.round(timeLeft * 3);
+    const streakBonus = quizStreak >= 2 ? (quizStreak * 10) : 0;
+    const points = 100 + timeBonus + streakBonus;
+    quizScore += points;
+    quizStreak++;
+    correctAnswers++;
+    if (quizStreak > bestQuizStreak) bestQuizStreak = quizStreak;
+    showQuizFeedback(true, `✅ Correct! +${points} points${streakBonus > 0 ? ` (${quizStreak}x streak bonus!)` : ''}. ${q.explanation}`);
+  } else {
+    btns[q.answer].classList.add('reveal');
+    quizStreak = 0;
+    showQuizFeedback(false, `❌ Not quite! The answer is <strong>${q.options[q.answer]}</strong>. ${q.explanation}`);
+  }
+
+  // Update performance tracking for adaptive difficulty
+  if (adaptiveDifficulty) {
+    updatePerformance(isCorrect, responseTime);
+  }
+
+  // Update category stats
+  updateCategoryStats(q.category, isCorrect);
+
+  updateQuizStats();
+  document.getElementById('nextBtn').className = 'next-btn show';
+}
+
+function revealQuizAnswer() {
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach(b => b.disabled = true);
+  btns[quizQuestions[currentQuestion].answer].classList.add('reveal');
+}
+
+function showQuizFeedback(correct, html) {
+  const fb = document.getElementById('feedback');
+  fb.className = `feedback ${correct ? 'correct-fb' : 'wrong-fb'} show`;
+  document.getElementById('feedbackIcon').textContent = correct ? '🌟' : '📖';
+  document.getElementById('feedbackText').innerHTML = html;
+}
+
+function nextQuestion() {
+  currentQuestion++;
+  if (currentQuestion >= quizQuestions.length) {
+    endQuizGame();
+  } else {
+    renderQuizQuestion();
+  }
+}
+
+function updateQuizStats() {
+  document.getElementById('scoreDisplay').textContent = quizScore.toLocaleString();
+  document.getElementById('streakDisplay').textContent = quizStreak > 0 ? `${quizStreak}🔥` : quizStreak;
+}
+
+function endQuizGame() {
+  showScreen('endScreen');
+  document.getElementById('progressFill').style.width = '100%';
+
+  const accuracy = Math.round((correctAnswers / quizQuestions.length) * 100);
+  document.getElementById('finalScore').textContent = quizScore.toLocaleString();
+  document.getElementById('correctCount').textContent = `${correctAnswers}/${quizQuestions.length}`;
+  document.getElementById('accuracyPct').textContent = `${accuracy}%`;
+  document.getElementById('bestStreak').textContent = bestQuizStreak;
+
+  let trophy, title, rank;
+  if (accuracy >= 90) { trophy = '🏆'; title = 'Master Explorer!'; rank = '🌟 Grand Cartographer'; }
+  else if (accuracy >= 75) { trophy = '🥇'; title = 'Excellent Work!'; rank = '🗺️ Senior Explorer'; }
+  else if (accuracy >= 60) { trophy = '🥈'; title = 'Well Done!'; rank = '🧭 Junior Explorer'; }
+  else if (accuracy >= 40) { trophy = '🥉'; title = 'Good Effort!'; rank = '⚓ Apprentice Navigator'; }
+  else { trophy = '📜'; title = 'Keep Learning!'; rank = '🌱 Beginner Adventurer'; }
+
+  document.getElementById('trophyEmoji').textContent = trophy;
+  document.getElementById('endTitle').textContent = title;
+  document.getElementById('rankBadge').textContent = rank;
+
+  // Update progress
+  userProgress.totalGamesPlayed++;
+  userProgress.totalQuestionsAnswered += quizQuestions.length;
+  userProgress.totalCorrectAnswers += correctAnswers;
+  
+  if (quizScore > userProgress.highestScore) {
+    userProgress.highestScore = quizScore;
+  }
+  
+  if (accuracy > userProgress.bestAccuracy) {
+    userProgress.bestAccuracy = accuracy;
+  }
+  
+  if (bestQuizStreak > userProgress.longestStreak) {
+    userProgress.longestStreak = bestQuizStreak;
+  }
+
+  saveProgress();
+  checkAchievements();
+  updateStatsDisplay();
+}
+
+function resetToMenu() {
+  showScreen('menuScreen');
+  updateStatsDisplay();
+}
+
+// ─── TODAY IN HISTORY ────────────────────────────────────────────
+function loadTodayInHistory() {
+  const container = document.getElementById('historyFacts');
+  const dateEl = document.getElementById('todayDate');
+  
+  const today = new Date();
+  const monthNames = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+  const dateStr = `${monthNames[today.getMonth()]} ${today.getDate()}`;
+  
+  dateEl.textContent = dateStr;
+
+  // Curated historical facts for today (loads instantly, works offline)
+  const historicalFacts = [
+    { year: 1961, event: "President Kennedy announces goal to land a man on the Moon before the decade's end, sparking the space race." },
+    { year: 1977, event: "Star Wars Episode IV: A New Hope is released, revolutionizing cinema and creating a cultural phenomenon." },
+    { year: 2001, event: "Erik Weihenmayer becomes the first blind person to summit Mount Everest, proving human limitations are often self-imposed." },
+    { year: 1935, event: "Jesse Owens sets 3 world records and ties another in 45 minutes at the Big Ten track meet." }
+  ];
+
+  container.innerHTML = '';
+  
+  historicalFacts.forEach(fact => {
+    const factDiv = document.createElement('div');
+    factDiv.className = 'history-fact';
+    factDiv.innerHTML = `<span class="fact-year">${fact.year}:</span> ${fact.event}`;
+    container.appendChild(factDiv);
+  });
+}
+
+// Load Today in History when page loads
+window.addEventListener('load', () => {
+  loadTodayInHistory();
+  loadFunFact();
+  updateStatsDisplay();
+});
+
+// Load random fun fact
+function loadFunFact() {
+  const randomFact = funFacts[Math.floor(Math.random() * funFacts.length)];
+  document.getElementById('funFactText').textContent = randomFact;
+}
+
+// ─── WORLD TOUR FUNCTIONS ────────────────────────────────────────
+function showWorldTour() {
+  showScreen('worldTourScreen');
+  renderCountries();
+  updateCountriesVisited();
+}
+
+function selectContinent(continent) {
+  selectedContinent = continent;
+  document.querySelectorAll('.continent-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderCountries();
+}
+
+function renderCountries() {
+  const grid = document.getElementById('countriesGrid');
+  grid.innerHTML = '';
+  
+  const continentCountries = countries[selectedContinent];
+  continentCountries.forEach(country => {
+    const isVisited = userProgress.visitedCountries.includes(country.name);
+    
+    const card = document.createElement('div');
+    card.className = `country-card ${isVisited ? 'visited' : ''}`;
+    card.onclick = () => isVisited ? showCountryFacts(country) : startCountryChallenge(country);
+    card.innerHTML = `
+      <div class="country-card-flag">${country.flag}</div>
+      <div class="country-card-name">${country.name}</div>
+      <div class="country-card-status">${isVisited ? '✓ Visited — tap to revisit' : 'Not visited'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function updateCountriesVisited() {
+  const total = Object.values(countries).reduce((sum, continent) => sum + continent.length, 0);
+  document.getElementById('countriesVisited').textContent = `${userProgress.visitedCountries.length}/${total}`;
+}
+
+function startCountryChallenge(country) {
+  currentCountry = country;
+  countryQuestionIndex = 0;
+  countryCorrectAnswers = 0;
+  
+  document.getElementById('countryFlag').textContent = country.flag;
+  document.getElementById('countryName').textContent = country.name;
+  
+  showScreen('countryChallenge');
+  renderCountryQuestion();
+}
+
+function renderCountryQuestion() {
+  // Filter geography questions about this region
+  const regionQuestions = allQuizQuestions.filter(q => 
+    q.category === 'Geography' && !askedQuestions.includes(q.question)
+  );
+  
+  if (regionQuestions.length === 0) {
+    // Fallback to any question
+    const anyQuestion = allQuizQuestions.filter(q => !askedQuestions.includes(q.question))[0];
+    displayCountryQuestion(anyQuestion);
+  } else {
+    const randomQ = regionQuestions[Math.floor(Math.random() * regionQuestions.length)];
+    displayCountryQuestion(randomQ);
+  }
+}
+
+function displayCountryQuestion(q) {
+  document.getElementById('countryQuestionText').textContent = q.question;
+  document.getElementById('countryProgress').textContent = `${countryCorrectAnswers}/3`;
+  
+  const grid = document.getElementById('countryOptionsGrid');
+  grid.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+  
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+    btn.onclick = () => selectCountryAnswer(i, q);
+    grid.appendChild(btn);
+  });
+  
+  document.getElementById('countryFeedback').className = 'feedback';
+  document.getElementById('countryNextBtn').className = 'next-btn';
+  
+  askedQuestions.push(q.question);
+}
+
+function selectCountryAnswer(idx, q) {
+  const btns = document.querySelectorAll('#countryOptionsGrid .option-btn');
+  const isCorrect = idx === q.answer;
+  
+  btns.forEach(b => b.disabled = true);
+  btns[idx].classList.add(isCorrect ? 'correct' : 'wrong');
+  
+  if (!isCorrect) {
+    btns[q.answer].classList.add('reveal');
+  }
+  
+  const fb = document.getElementById('countryFeedback');
+  fb.className = `feedback ${isCorrect ? 'correct-fb' : 'wrong-fb'} show`;
+  fb.innerHTML = `<span class="feedback-icon">${isCorrect ? '🌟' : '📖'}</span><span>${q.explanation}</span>`;
+  
+  if (isCorrect) {
+    countryCorrectAnswers++;
+    document.getElementById('countryProgress').textContent = `${countryCorrectAnswers}/3`;
+  }
+  
+  document.getElementById('countryNextBtn').className = 'next-btn show';
+}
+
+function nextCountryQuestion() {
+  if (countryCorrectAnswers >= 3) {
+    // Country unlocked!
+    if (!userProgress.visitedCountries.includes(currentCountry.name)) {
+      userProgress.visitedCountries.push(currentCountry.name);
+      saveProgress();
+      checkAchievements();
+    }
+    
+    // Show country facts screen
+    showCountryFacts(currentCountry);
+  } else {
+    countryQuestionIndex++;
+    renderCountryQuestion();
+  }
+}
+
+function showCountryFacts(country, isRevisit = false) {
+  showScreen('countryFactsScreen');
+  
+  const isAlreadyVisited = userProgress.visitedCountries.includes(country.name);
+  const revisiting = isRevisit || isAlreadyVisited;
+
+  // Adapt header copy based on first unlock vs revisit
+  document.getElementById('unlockedFlag').textContent = country.flag;
+  document.getElementById('unlockedCountryName').textContent = country.name;
+  document.getElementById('unlockedCountryName2').textContent = country.name;
+  document.getElementById('factsScreenLabel').textContent = revisiting ? 'Revisiting' : 'Unlocked!';
+  document.getElementById('factsScreenTitle').textContent = revisiting ? `📖 Welcome back to ${country.name}!` : '🎉 Congratulations!';
+  document.getElementById('factsScreenSubtitle').innerHTML = revisiting
+    ? `Here are your unlocked facts about <span>${country.name}</span>`
+    : `You've unlocked <span>${country.name}</span>`;
+
+  // Populate facts
+  const factsList = document.getElementById('countryFactsList');
+  factsList.innerHTML = '';
+  
+  const factIcons = ['🌟', '📍', '🎯', '💡', '🏛️', '🌍', '✨'];
+  
+  country.facts.forEach((fact, index) => {
+    const factItem = document.createElement('div');
+    factItem.className = 'fact-item';
+    factItem.innerHTML = `
+      <div class="fact-icon">${factIcons[index % factIcons.length]}</div>
+      <div class="fact-text">${fact}</div>
+    `;
+    factsList.appendChild(factItem);
+  });
+}
+
+// Update stats display on main menu
+function updateStatsDisplay() {
+  document.getElementById('streakNumber').textContent = userProgress.dailyStreakCount;
+  document.getElementById('achievementCount').textContent = `${userProgress.achievements.length}/${ACHIEVEMENTS.length}`;
+  
+  const totalAnswered = userProgress.totalQuestionsAnswered;
+  const accuracy = totalAnswered > 0 ? Math.round((userProgress.totalCorrectAnswers / totalAnswered) * 100) : 0;
+  document.getElementById('accuracyNumber').textContent = `${accuracy}%`;
+}
+
+// Show achievements screen
+function showAchievements() {
+  showScreen('achievementsScreen');
+  renderAchievements();
+}
+
+// Render achievements grid
+function renderAchievements() {
+  const grid = document.getElementById('achievementsGrid');
+  grid.innerHTML = '';
+  
+  document.getElementById('unlockedCount').textContent = `${userProgress.achievements.length}/${ACHIEVEMENTS.length}`;
+  
+  ACHIEVEMENTS.forEach(achievement => {
+    const isUnlocked = userProgress.achievements.includes(achievement.id);
+    
+    const card = document.createElement('div');
+    card.className = `achievement-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+    card.innerHTML = `
+      <div class="achievement-card-icon">${achievement.icon}</div>
+      <div class="achievement-card-content">
+        <div class="achievement-card-name">${achievement.name}</div>
+        <div class="achievement-card-desc">${achievement.desc}</div>
+      </div>
+      <div class="achievement-badge">${isUnlocked ? 'Unlocked' : 'Locked'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─── DIFFICULTY ADAPTATION ───────────────────────────────────────
+function updatePerformance(correct, responseTime) {
+  performanceHistory.push({
+    correct: correct,
+    time: responseTime,
+    timestamp: Date.now()
+  });
+  
+  // Keep only last 5 questions
+  if (performanceHistory.length > 5) {
+    performanceHistory.shift();
+  }
+  
+  // Adapt difficulty if we have enough data
+  if (performanceHistory.length >= 3) {
+    adaptDifficulty();
+  }
+}
+
+function adaptDifficulty() {
+  const recentPerformance = performanceHistory.slice(-3);
+  const correctCount = recentPerformance.filter(p => p.correct).length;
+  const avgTime = recentPerformance.reduce((sum, p) => sum + p.time, 0) / recentPerformance.length;
+  
+  // Increase difficulty if: 3/3 correct AND average time > 10s
+  if (correctCount === 3 && avgTime > 10) {
+    if (currentAdaptiveLevel === 'easy') {
+      currentAdaptiveLevel = 'medium';
+      console.log('Difficulty increased to MEDIUM');
+    } else if (currentAdaptiveLevel === 'medium') {
+      currentAdaptiveLevel = 'hard';
+      console.log('Difficulty increased to HARD');
+    }
+  }
+  
+  // Decrease difficulty if: 0/3 correct OR 1/3 correct
+  else if (correctCount <= 1) {
+    if (currentAdaptiveLevel === 'hard') {
+      currentAdaptiveLevel = 'medium';
+      console.log('Difficulty decreased to MEDIUM');
+    } else if (currentAdaptiveLevel === 'medium') {
+      currentAdaptiveLevel = 'easy';
+      console.log('Difficulty decreased to EASY');
+    }
+  }
+}
+
+function getAdaptiveQuestion() {
+  let pool;
+  if (currentAdaptiveLevel === 'easy') {
+    pool = allQuizQuestions.filter(q => q.difficulty === 'easy');
+  } else if (currentAdaptiveLevel === 'hard') {
+    pool = allQuizQuestions.filter(q => q.difficulty === 'hard');
+  } else {
+    pool = allQuizQuestions.filter(q => q.difficulty === 'medium');
+  }
+  
+  // Fallback to all questions if pool is empty
+  if (pool.length === 0) pool = allQuizQuestions;
+  
+  // Filter out questions already asked
+  const availableQuestions = pool.filter(q => !askedQuestions.includes(q.question));
+  
+  // If all questions from this difficulty have been asked, use any unasked question
+  if (availableQuestions.length === 0) {
+    const anyUnasked = allQuizQuestions.filter(q => !askedQuestions.includes(q.question));
+    if (anyUnasked.length > 0) {
+      const selected = anyUnasked[Math.floor(Math.random() * anyUnasked.length)];
+      askedQuestions.push(selected.question);
+      return selected;
+    }
+    // If somehow all questions asked (shouldn't happen in a 10-question game), reset
+    askedQuestions = [];
+    const selected = pool[Math.floor(Math.random() * pool.length)];
+    askedQuestions.push(selected.question);
+    return selected;
+  }
+  
+  const selected = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+  askedQuestions.push(selected.question);
+  return selected;
+}
+</script>
+</body>
+</html>
