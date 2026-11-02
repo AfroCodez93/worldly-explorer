@@ -540,6 +540,8 @@
     text-align: center;
   }
 
+  [hidden] { display: none !important; }
+
   .account-bar {
     margin-top: 14px;
     font-size: 12px;
@@ -4045,7 +4047,23 @@ const sb = (APP_CONFIG.supabaseUrl && APP_CONFIG.supabaseAnonKey && window.supab
   ? window.supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseAnonKey)
   : null;
 
-const account = { user: null, tier: 'free', cloudTimer: null };
+// `synced` stays false until the cloud copy has been loaded and merged, so a
+// save can never overwrite the account with this browser's partial progress.
+const account = { user: null, tier: 'free', cloudTimer: null, synced: false };
+const LAST_USER_KEY = 'we_last_user_id';
+
+function freshProgress() {
+  return {
+    totalGamesPlayed: 0, totalQuestionsAnswered: 0, totalCorrectAnswers: 0,
+    highestScore: 0, bestAccuracy: 0, longestStreak: 0, totalStudyCards: 0,
+    lastPlayedDate: null, dailyStreakCount: 0, achievements: [], visitedCountries: [],
+    categoryStats: {
+      geography: { correct: 0, total: 0 },
+      history: { correct: 0, total: 0 },
+      etymology: { correct: 0, total: 0 }
+    }
+  };
+}
 
 function setAccountMsg(text) {
   document.getElementById('accountMsg').textContent = text || '';
@@ -4089,11 +4107,13 @@ function mergeProgress(local, remote) {
 }
 
 function scheduleCloudSave() {
-  if (!sb || !account.user) return;
+  if (!sb || !account.user || !account.synced) return;
+  const userId = account.user.id;
   clearTimeout(account.cloudTimer);
   account.cloudTimer = setTimeout(async () => {
+    if (!account.user || account.user.id !== userId) return; // signed out meanwhile
     const { error } = await sb.from('user_progress').upsert({
-      user_id: account.user.id,
+      user_id: userId,
       data: userProgress,
       updated_at: new Date().toISOString()
     });
@@ -4114,21 +4134,42 @@ async function onSignedIn(user) {
   document.getElementById('accountSignedIn').hidden = false;
   document.getElementById('accountEmail').textContent = user.email || '';
 
-  const [{ data: profile }, { data: progressRow }] = await Promise.all([
+  account.synced = false;
+
+  const [profileRes, progressRes] = await Promise.all([
     sb.from('profiles').select('tier').eq('id', user.id).maybeSingle(),
     sb.from('user_progress').select('data').eq('user_id', user.id).maybeSingle()
   ]);
-  account.tier = profile && profile.tier === 'pro' ? 'pro' : 'free';
+  if (!account.user || account.user.id !== user.id) return; // signed out meanwhile
+
+  account.tier = profileRes.data && profileRes.data.tier === 'pro' ? 'pro' : 'free';
   document.getElementById('tierBadge').textContent = account.tier === 'pro' ? 'Pro' : 'Free';
 
-  userProgress = mergeProgress(userProgress, progressRow && progressRow.data);
+  if (progressRes.error) {
+    // Don't merge or upload: that could overwrite the saved account progress.
+    console.error('Could not load cloud progress:', progressRes.error.message);
+    setAccountMsg("Couldn't load your saved progress. It will sync next time you sign in.");
+    return;
+  }
+
+  // Only fold this browser's progress into the account if it was earned while
+  // signed out or by this same user, never another person's on a shared device.
+  let lastUser = null;
+  try { lastUser = localStorage.getItem(LAST_USER_KEY); } catch (e) {}
+  const base = (lastUser && lastUser !== user.id) ? freshProgress() : userProgress;
+  try { localStorage.setItem(LAST_USER_KEY, user.id); } catch (e) {}
+
+  userProgress = mergeProgress(base, progressRes.data && progressRes.data.data);
+  account.synced = true;
   updateDailyStreak();
   saveProgress();
   if (typeof updateStatsDisplay === 'function') updateStatsDisplay();
 }
 
 function onSignedOut() {
+  clearTimeout(account.cloudTimer);
   account.user = null;
+  account.synced = false;
   account.tier = 'free';
   document.getElementById('accountSignedOut').hidden = false;
   document.getElementById('accountSignedIn').hidden = true;

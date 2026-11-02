@@ -18,7 +18,8 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.135.0";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-opus-5-5";
-const PRO_DAILY_LIMIT = Number(Deno.env.get("PRO_DAILY_AI_LIMIT") ?? "30");
+const limitEnv = Number.parseInt(Deno.env.get("PRO_DAILY_AI_LIMIT") ?? "", 10);
+const PRO_DAILY_LIMIT = Number.isFinite(limitEnv) && limitEnv > 0 ? limitEnv : 30;
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
@@ -154,15 +155,19 @@ Deno.serve(async (req) => {
   try {
     const response = await anthropic.beta.messages.create(request);
 
-    if (response.stop_reason === "refusal") {
-      await admin.rpc("refund_ai_quota", { p_user: userId });
-      return json(422, { error: "request_declined" });
-    }
+    // Declined requests are still billed, so they keep using a credit
+    // (otherwise they could be spammed for free).
+    if (response.stop_reason === "refusal") return json(422, { error: "request_declined" });
 
+    // If a fallback model took over, text before the last `fallback` block is
+    // the declining model's partial output: keep only what follows it.
     let text = "";
     for (const block of response.content) {
-      if (block.type === "text") text += block.text;
+      if (block.type === "fallback") text = "";
+      else if (block.type === "text") text += block.text;
     }
+
+    if (response.stop_reason === "max_tokens") throw new Error("response truncated");
 
     if (body.action === "deck") {
       const parsed = JSON.parse(text) as { cards: unknown[] };

@@ -58,6 +58,10 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Backfill rows for anyone who signed up before this migration ran.
+insert into public.profiles (id) select id from auth.users on conflict (id) do nothing;
+insert into public.user_progress (user_id) select id from auth.users on conflict (user_id) do nothing;
+
 -- ---------- ai_usage ----------
 create table if not exists public.ai_usage (
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -96,6 +100,7 @@ returns void language sql security definer set search_path = public as $$
 $$;
 
 -- Only the service role (Edge Functions) may call the quota functions.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 revoke all on function public.consume_ai_quota(uuid, integer) from public, anon, authenticated;
 revoke all on function public.refund_ai_quota(uuid) from public, anon, authenticated;
 grant execute on function public.consume_ai_quota(uuid, integer) to service_role;
