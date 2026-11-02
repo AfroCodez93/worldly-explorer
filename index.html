@@ -269,6 +269,40 @@
     margin-right: 6px;
   }
 
+  .history-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .history-more-btn {
+    background: none;
+    border: 1px solid var(--gold);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .history-more-btn:hover { background: var(--gold); color: white; }
+
+  .history-source {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--fog);
+  }
+
+  .history-error {
+    font-size: 13px;
+    color: var(--fog);
+    text-align: center;
+    padding: 12px;
+  }
+
   .start-btn {
     padding: 18px 48px;
     background: var(--ink);
@@ -1507,6 +1541,10 @@
       </div>
       <div class="history-facts" id="historyFacts">
         <div class="loading-spinner" style="margin: 20px auto;"></div>
+      </div>
+      <div class="history-footer">
+        <button type="button" class="history-more-btn" id="historyMoreBtn" hidden>↻ More events</button>
+        <a class="history-source" id="historySource" href="https://en.wikipedia.org/wiki/Wikipedia:Selected_anniversaries" target="_blank" rel="noopener">Source: Wikipedia</a>
       </div>
     </div>
 
@@ -3551,34 +3589,158 @@ function resetToMenu() {
 }
 
 // ─── TODAY IN HISTORY ────────────────────────────────────────────
-function loadTodayInHistory() {
+// ===== TODAY IN HISTORY =====
+// Events come from a data source keyed by month/day, so they always match the
+// viewer's local date. Today: Wikipedia's free "On this day" feed.
+// Later: set HISTORY_CONFIG.supabaseUrl to serve events from your own Supabase
+// edge function (curated, cached, premium content) with no other code changes.
+const HISTORY_CONFIG = {
+  eventsPerView: 4,
+  supabaseUrl: null,          // e.g. "https://YOUR-PROJECT.supabase.co"
+  supabaseAnonKey: null,      // public anon key (safe in the browser)
+  cachePrefix: 'we_otd_v1_'
+};
+
+let historyState = { key: null, events: [], shown: new Set() };
+
+function historyDateParts(d = new Date()) {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return { mm, dd, key: `${mm}-${dd}` };
+}
+
+function historySources(mm, dd) {
+  const list = [];
+  if (HISTORY_CONFIG.supabaseUrl) {
+    list.push({
+      url: `${HISTORY_CONFIG.supabaseUrl}/functions/v1/on-this-day?month=${mm}&day=${dd}`,
+      headers: HISTORY_CONFIG.supabaseAnonKey
+        ? { Authorization: `Bearer ${HISTORY_CONFIG.supabaseAnonKey}` } : {}
+    });
+  }
+  list.push({ url: `https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/${mm}/${dd}`, headers: {} });
+  list.push({ url: `https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/selected/${mm}/${dd}`, headers: {} });
+  return list;
+}
+
+// Normalise any source to [{ year, text, url }]
+function normaliseHistory(data) {
+  const raw = Array.isArray(data) ? data : (data.selected || data.events || []);
+  return raw
+    .filter(e => e && e.year != null && e.text)
+    .map(e => ({
+      year: e.year,
+      text: e.text,
+      url: e.url || (e.pages && e.pages[0] && e.pages[0].content_urls
+        ? e.pages[0].content_urls.desktop.page : null)
+    }));
+}
+
+function readHistoryCache(key) {
+  try {
+    const v = localStorage.getItem(HISTORY_CONFIG.cachePrefix + key);
+    return v ? JSON.parse(v) : null;
+  } catch (e) { return null; }
+}
+
+function writeHistoryCache(key, events) {
+  try {
+    // keep only today's entry to avoid filling storage
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(HISTORY_CONFIG.cachePrefix))
+      .forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(HISTORY_CONFIG.cachePrefix + key, JSON.stringify(events));
+  } catch (e) { /* storage unavailable: just skip caching */ }
+}
+
+async function fetchHistoryEvents(mm, dd, key) {
+  const cached = readHistoryCache(key);
+  if (cached && cached.length) return cached;
+
+  for (const src of historySources(mm, dd)) {
+    try {
+      const res = await fetch(src.url, { headers: src.headers });
+      if (!res.ok) continue;
+      const events = normaliseHistory(await res.json());
+      if (events.length) {
+        writeHistoryCache(key, events);
+        return events;
+      }
+    } catch (e) { /* try next source */ }
+  }
+  return [];
+}
+
+// Pick events not yet shown this session; reset once all have been seen
+function pickHistoryEvents() {
+  const { events, shown } = historyState;
+  let pool = events.map((_, i) => i).filter(i => !shown.has(i));
+  if (pool.length === 0) { shown.clear(); pool = events.map((_, i) => i); }
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const picked = pool.slice(0, HISTORY_CONFIG.eventsPerView);
+  picked.forEach(i => shown.add(i));
+  return picked.map(i => events[i]).sort((a, b) => a.year - b.year);
+}
+
+function renderHistoryEvents() {
+  const container = document.getElementById('historyFacts');
+  const moreBtn = document.getElementById('historyMoreBtn');
+  container.innerHTML = '';
+
+  if (!historyState.events.length) {
+    const msg = document.createElement('div');
+    msg.className = 'history-error';
+    msg.textContent = "Couldn't load today's events. Check your connection and try again later.";
+    container.appendChild(msg);
+    moreBtn.hidden = true;
+    return;
+  }
+
+  pickHistoryEvents().forEach(ev => {
+    const div = document.createElement('div');
+    div.className = 'history-fact';
+    const year = document.createElement('span');
+    year.className = 'fact-year';
+    year.textContent = `${ev.year}:`;
+    div.appendChild(year);
+    div.appendChild(document.createTextNode(' ' + ev.text));
+    container.appendChild(div);
+  });
+  moreBtn.hidden = historyState.events.length <= HISTORY_CONFIG.eventsPerView;
+}
+
+async function loadTodayInHistory() {
   const container = document.getElementById('historyFacts');
   const dateEl = document.getElementById('todayDate');
-  
-  const today = new Date();
-  const monthNames = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"];
-  const dateStr = `${monthNames[today.getMonth()]} ${today.getDate()}`;
-  
-  dateEl.textContent = dateStr;
+  const sourceEl = document.getElementById('historySource');
+  const now = new Date();
+  const { mm, dd, key } = historyDateParts(now);
 
-  // Curated historical facts for today (loads instantly, works offline)
-  const historicalFacts = [
-    { year: 1961, event: "President Kennedy announces goal to land a man on the Moon before the decade's end, sparking the space race." },
-    { year: 1977, event: "Star Wars Episode IV: A New Hope is released, revolutionizing cinema and creating a cultural phenomenon." },
-    { year: 2001, event: "Erik Weihenmayer becomes the first blind person to summit Mount Everest, proving human limitations are often self-imposed." },
-    { year: 1935, event: "Jesse Owens sets 3 world records and ties another in 45 minutes at the Big Ten track meet." }
-  ];
+  if (historyState.key === key && historyState.events.length) return; // already loaded today
 
-  container.innerHTML = '';
-  
-  historicalFacts.forEach(fact => {
-    const factDiv = document.createElement('div');
-    factDiv.className = 'history-fact';
-    factDiv.innerHTML = `<span class="fact-year">${fact.year}:</span> ${fact.event}`;
-    container.appendChild(factDiv);
-  });
+  dateEl.textContent = now.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+  sourceEl.href = `https://en.wikipedia.org/wiki/${monthName}_${now.getDate()}`;
+  container.innerHTML = '<div class="loading-spinner" style="margin: 20px auto;"></div>';
+
+  const events = await fetchHistoryEvents(mm, dd, key);
+  historyState = { key, events, shown: new Set() };
+  renderHistoryEvents();
 }
+
+document.addEventListener('click', e => {
+  if (e.target && e.target.id === 'historyMoreBtn') renderHistoryEvents();
+});
+
+// If the app stays open past midnight, refresh when the user comes back
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && historyState.key !== historyDateParts().key) {
+    loadTodayInHistory();
+  }
+});
 
 // Load Today in History when page loads
 window.addEventListener('load', () => {
