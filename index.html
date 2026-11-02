@@ -540,6 +540,81 @@
     text-align: center;
   }
 
+  .account-bar {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--fog);
+    position: relative;
+    z-index: 1;
+  }
+
+  .account-bar > div { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+
+  .account-btn {
+    background: none;
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .account-btn:hover { background: var(--gold); color: var(--ink); }
+
+  .sign-in-form { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+
+  .sign-in-form input {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--gold);
+    font-family: inherit;
+    font-size: 12px;
+    min-width: 0;
+    max-width: 220px;
+  }
+
+  .tier-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .account-msg { margin-top: 6px; min-height: 0; }
+  .account-msg:empty { display: none; }
+
+  .ask-panel {
+    margin-top: 20px;
+    padding: 14px;
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    background: white;
+  }
+
+  .ask-title { font-weight: 600; font-size: 14px; margin-bottom: 10px; color: var(--ink); }
+
+  .ask-form { display: flex; gap: 8px; }
+
+  .ask-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--fog);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  .ask-answer { margin-top: 10px; font-size: 13px; line-height: 1.6; color: var(--ink); white-space: pre-wrap; }
+  .ask-answer:empty { display: none; }
+
   .flashcard-controls {
     display: flex;
     gap: 12px;
@@ -1489,6 +1564,7 @@
     color: var(--ink);
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -1497,6 +1573,21 @@
     <div class="header-ornament">✦ &nbsp; An Atlas of Knowledge &nbsp; ✦</div>
     <h1>World <span>Explorer</span></h1>
     <div class="header-sub">History · Geography · Etymology</div>
+    <div class="account-bar" id="accountBar" hidden>
+      <div id="accountSignedOut">
+        <button type="button" class="account-btn" id="signInToggle">Sign in to save your streak</button>
+        <form id="signInForm" class="sign-in-form" hidden>
+          <input type="email" id="signInEmail" placeholder="you@example.com" required autocomplete="email">
+          <button type="submit" class="account-btn">Email me a link</button>
+        </form>
+      </div>
+      <div id="accountSignedIn" hidden>
+        <span id="accountEmail"></span>
+        <span class="tier-badge" id="tierBadge">Free</span>
+        <button type="button" class="account-btn" id="signOutBtn">Sign out</button>
+      </div>
+      <div class="account-msg" id="accountMsg" role="status"></div>
+    </div>
   </div>
 
   <!-- MAIN MENU -->
@@ -1705,7 +1796,7 @@
           </div>
 
           <div id="aiModeInfo" class="info-box" style="display:none;">
-            <strong>AI Mode:</strong> Generate unlimited fresh flashcards using Claude's web search. Each deck is created from authoritative sources in real-time.
+            <strong>AI Mode (Pro):</strong> Generate fresh flashcard decks with the AI instructor. Requires a Pro account.
           </div>
           
           <p style="color:var(--fog); font-size:14px; margin-bottom:20px;">Choose a category to begin</p>
@@ -1745,6 +1836,15 @@
           <button class="control-btn" onclick="prevCard()" id="prevBtn">← Previous</button>
           <button class="control-btn shuffle-btn" onclick="shuffleDeck()" id="shuffleBtn">🔀 Shuffle</button>
           <button class="control-btn" onclick="nextCard()" id="nextBtn">Next →</button>
+        </div>
+
+        <div class="ask-panel" id="askPanel">
+          <div class="ask-title">🎓 Ask the AI instructor <span class="tier-badge">Pro</span></div>
+          <form id="askForm" class="ask-form">
+            <input type="text" id="askInput" maxlength="500" placeholder="Why did this happen? Tell me more…" required>
+            <button type="submit" class="control-btn" id="askBtn">Ask</button>
+          </form>
+          <div class="ask-answer" id="askAnswer" role="status"></div>
         </div>
 
         <div style="text-align:center; margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
@@ -3162,131 +3262,22 @@ async function generateDeck() {
   btn.disabled = true;
   btn.innerHTML = '<span class="loading-spinner"></span> Generating...';
 
-  const prompts = {
-    etymology: `You are an etymology expert. Generate exactly 10 unique and fascinating flashcards about word origins.
-
-For each flashcard, provide:
-1. FRONT: A single word (preferably interesting, not too common)
-2. BACK: The etymology explanation (origin language, root words, literal meaning, historical context)
-3. CATEGORY: A subcategory (e.g., "Medical", "Mythology", "Science", "Food")
-4. SOURCE: Brief source attribution (e.g., "etymonline.com", "Oxford Dictionary")
-
-Use authoritative etymology sources. Focus on words with interesting stories. Make explanations concise but engaging (2-3 sentences max).
-
-Return ONLY a valid JSON array with this exact structure:
-[
-  {
-    "front": "Word",
-    "back": "Etymology explanation here...",
-    "category": "Subcategory",
-    "source": "Source name"
-  }
-]
-
-No markdown, no code blocks, just the JSON array.`,
-
-    history: `You are a history expert. Generate exactly 10 unique and educational flashcards about historical events, figures, or concepts.
-
-For each flashcard, provide:
-1. FRONT: A question about a historical event, person, or concept
-2. BACK: A detailed answer with dates, context, and significance (2-4 sentences)
-3. CATEGORY: A subcategory (e.g., "Ancient", "Medieval", "Modern", "Military", "Cultural")
-4. SOURCE: Brief source reference (e.g., "Historical records", "Encyclopedia Britannica")
-
-Cover diverse periods and regions. Focus on significant, verifiable historical facts. Make answers educational and engaging.
-
-Return ONLY a valid JSON array with this exact structure:
-[
-  {
-    "front": "Question about history?",
-    "back": "Detailed answer with dates and context...",
-    "category": "Subcategory",
-    "source": "Source name"
-  }
-]
-
-No markdown, no code blocks, just the JSON array.`,
-
-    geography: `You are a geography expert. Generate exactly 10 unique and educational flashcards about physical geography, countries, landmarks, or natural phenomena.
-
-For each flashcard, provide:
-1. FRONT: A question about geography (physical features, countries, climate, landforms, etc.)
-2. BACK: A detailed answer with facts, measurements, locations, and context (2-4 sentences)
-3. CATEGORY: A subcategory (e.g., "Physical", "Climate", "Oceans", "Landforms", "Countries")
-4. SOURCE: Brief source reference (e.g., "National Geographic", "Geographic data")
-
-Cover diverse topics. Include specific facts and measurements where relevant. Make answers educational and engaging.
-
-Return ONLY a valid JSON array with this exact structure:
-[
-  {
-    "front": "Question about geography?",
-    "back": "Detailed answer with facts and context...",
-    "category": "Subcategory",
-    "source": "Source name"
-  }
-]
-
-No markdown, no code blocks, just the JSON array.`
-  };
-
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4000,
-        messages: [
-          {
-            role: "user",
-            content: prompts[selectedCategory]
-          }
-        ],
-        tools: [
-          {
-            type: "web_search_20250305",
-            name: "web_search"
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    let jsonText = '';
-    for (const block of data.content) {
-      if (block.type === 'text') {
-        jsonText += block.text;
-      }
-    }
-
-    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const cards = JSON.parse(jsonText);
-    
-    if (!Array.isArray(cards) || cards.length === 0) {
-      throw new Error('Invalid response format');
-    }
+    const { cards } = await callAI({ action: 'deck', category: selectedCategory });
+    if (!Array.isArray(cards) || cards.length === 0) throw new Error('Invalid response format');
 
     studyDeck = cards;
     currentCard = 0;
-    
+
     document.getElementById('categorySelection').style.display = 'none';
     document.getElementById('flashcardContainer').style.display = 'block';
     document.getElementById('shuffleBtn').style.display = 'none';
     document.getElementById('generateMoreBtn').style.display = 'inline-block';
-    
-    renderFlashcard();
 
+    renderFlashcard();
   } catch (error) {
     console.error('Generation error:', error);
-    alert('Failed to generate flashcards. Please try again. Error: ' + error.message);
+    alert(error.userMessage || 'Failed to generate flashcards. Please try again.');
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalText;
@@ -3305,6 +3296,7 @@ function renderFlashcard() {
   
   document.getElementById('flashcardInner').classList.remove('flipped');
   isFlipped = false;
+  document.getElementById('askAnswer').textContent = '';
   
   document.getElementById('prevBtn').disabled = currentCard === 0;
   document.getElementById('nextBtn').disabled = currentCard === studyDeck.length - 1;
@@ -4039,6 +4031,203 @@ function getAdaptiveQuestion() {
   askedQuestions.push(selected.question);
   return selected;
 }
+
+// ===== ACCOUNTS, CLOUD SAVE & AI (Supabase) =====
+// Fill these in from Supabase → Project Settings → API. The anon key is public
+// by design; Row Level Security in supabase/migrations keeps data private.
+// Leave them null and the app runs in local-only mode (progress in this browser).
+const APP_CONFIG = {
+  supabaseUrl: null,      // e.g. "https://YOUR-PROJECT.supabase.co"
+  supabaseAnonKey: null
+};
+
+const sb = (APP_CONFIG.supabaseUrl && APP_CONFIG.supabaseAnonKey && window.supabase)
+  ? window.supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseAnonKey)
+  : null;
+
+const account = { user: null, tier: 'free', cloudTimer: null };
+
+function setAccountMsg(text) {
+  document.getElementById('accountMsg').textContent = text || '';
+}
+
+// Combine two progress records so nothing earned on either device is lost.
+function mergeProgress(local, remote) {
+  if (!remote || typeof remote !== 'object') return local;
+  const out = { ...local, ...remote };
+  ['totalGamesPlayed', 'totalQuestionsAnswered', 'totalCorrectAnswers', 'highestScore',
+   'bestAccuracy', 'longestStreak', 'totalStudyCards'].forEach(k => {
+    out[k] = Math.max(Number(local[k]) || 0, Number(remote[k]) || 0);
+  });
+  ['achievements', 'visitedCountries'].forEach(k => {
+    const seen = new Map();
+    [...(local[k] || []), ...(remote[k] || [])].forEach(v => seen.set(JSON.stringify(v), v));
+    out[k] = [...seen.values()];
+  });
+  out.categoryStats = {};
+  const cats = new Set([...Object.keys(local.categoryStats || {}), ...Object.keys(remote.categoryStats || {})]);
+  cats.forEach(c => {
+    const a = (local.categoryStats || {})[c] || {}, b = (remote.categoryStats || {})[c] || {};
+    out.categoryStats[c] = {
+      correct: Math.max(a.correct || 0, b.correct || 0),
+      total: Math.max(a.total || 0, b.total || 0)
+    };
+  });
+  // Daily streak: opening the app counts as playing today, so work out what each
+  // record's streak is worth *today* and keep the best one.
+  const today = new Date(new Date().toDateString());
+  const streakToday = rec => {
+    if (!rec.lastPlayedDate) return 0;
+    const days = Math.round((today - new Date(new Date(rec.lastPlayedDate).toDateString())) / 864e5);
+    if (days === 0) return rec.dailyStreakCount || 1;
+    if (days === 1) return (rec.dailyStreakCount || 0) + 1;
+    return 1;
+  };
+  out.dailyStreakCount = Math.max(streakToday(local), streakToday(remote), 1);
+  out.lastPlayedDate = today.toDateString();
+  return out;
+}
+
+function scheduleCloudSave() {
+  if (!sb || !account.user) return;
+  clearTimeout(account.cloudTimer);
+  account.cloudTimer = setTimeout(async () => {
+    const { error } = await sb.from('user_progress').upsert({
+      user_id: account.user.id,
+      data: userProgress,
+      updated_at: new Date().toISOString()
+    });
+    if (error) console.error('Cloud save failed:', error.message);
+  }, 1500);
+}
+
+// Every local save also syncs to the account when signed in.
+const saveProgressLocal = saveProgress;
+saveProgress = function () {
+  saveProgressLocal();
+  scheduleCloudSave();
+};
+
+async function onSignedIn(user) {
+  account.user = user;
+  document.getElementById('accountSignedOut').hidden = true;
+  document.getElementById('accountSignedIn').hidden = false;
+  document.getElementById('accountEmail').textContent = user.email || '';
+
+  const [{ data: profile }, { data: progressRow }] = await Promise.all([
+    sb.from('profiles').select('tier').eq('id', user.id).maybeSingle(),
+    sb.from('user_progress').select('data').eq('user_id', user.id).maybeSingle()
+  ]);
+  account.tier = profile && profile.tier === 'pro' ? 'pro' : 'free';
+  document.getElementById('tierBadge').textContent = account.tier === 'pro' ? 'Pro' : 'Free';
+
+  userProgress = mergeProgress(userProgress, progressRow && progressRow.data);
+  updateDailyStreak();
+  saveProgress();
+  if (typeof updateStatsDisplay === 'function') updateStatsDisplay();
+}
+
+function onSignedOut() {
+  account.user = null;
+  account.tier = 'free';
+  document.getElementById('accountSignedOut').hidden = false;
+  document.getElementById('accountSignedIn').hidden = true;
+}
+
+function initAccounts() {
+  if (!sb) return; // local-only mode
+  document.getElementById('accountBar').hidden = false;
+
+  document.getElementById('signInToggle').addEventListener('click', () => {
+    const form = document.getElementById('signInForm');
+    form.hidden = !form.hidden;
+    if (!form.hidden) document.getElementById('signInEmail').focus();
+  });
+
+  document.getElementById('signInForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('signInEmail').value.trim();
+    setAccountMsg('Sending…');
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
+    setAccountMsg(error ? `Couldn't send link: ${error.message}` : 'Check your email for a sign-in link.');
+  });
+
+  document.getElementById('signOutBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    setAccountMsg('Signed out. Progress stays saved in this browser.');
+  });
+
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session && session.user) {
+      if (!account.user || account.user.id !== session.user.id) {
+        setAccountMsg('');
+        // defer: Supabase recommends not awaiting other calls inside this callback
+        setTimeout(() => onSignedIn(session.user), 0);
+      }
+    } else {
+      onSignedOut();
+    }
+  });
+}
+
+// All AI goes through the `ai` Edge Function: the API key stays on the server
+// and the server enforces sign-in, Pro tier and the daily limit.
+async function callAI(body) {
+  const fail = msg => { const e = new Error(msg); e.userMessage = msg; return e; };
+  if (!sb) throw fail('AI features are coming soon.');
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw fail('Sign in with a Pro account to use AI features.');
+
+  const res = await fetch(`${APP_CONFIG.supabaseUrl}/functions/v1/ai`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: APP_CONFIG.supabaseAnonKey
+    },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) return data;
+
+  const messages = {
+    sign_in_required: 'Please sign in again to use AI features.',
+    upgrade_required: 'AI features are part of World Explorer Pro.',
+    daily_limit_reached: `You've reached today's AI limit (${data.limit}). It resets at midnight UTC.`,
+    invalid_question: 'Please keep your question under 500 characters.',
+    request_declined: "The instructor can't help with that one. Try a different question.",
+    ai_busy: 'The AI is busy right now. Please try again in a minute.'
+  };
+  throw fail(messages[data.error] || 'Something went wrong. Please try again.');
+}
+
+document.getElementById('askForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = document.getElementById('askInput');
+  const answerEl = document.getElementById('askAnswer');
+  const btn = document.getElementById('askBtn');
+  const question = input.value.trim();
+  if (!question) return;
+
+  const card = studyDeck[currentCard];
+  const context = card ? `${card.front}\n${card.back}` : '';
+  btn.disabled = true;
+  answerEl.textContent = 'Thinking…';
+  try {
+    const { answer } = await callAI({ action: 'ask', question, context });
+    answerEl.textContent = answer;
+    input.value = '';
+  } catch (err) {
+    answerEl.textContent = err.userMessage || 'Something went wrong. Please try again.';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+initAccounts();
 </script>
 </body>
 </html>
