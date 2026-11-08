@@ -1,0 +1,7 @@
+# Supabase CLI settings for this project.
+# Run `supabase link --project-ref <your-ref>` once; other settings use defaults.
+
+# Stripe can't send a Supabase login token, so the webhook verifies the
+# Stripe signature itself instead.
+[functions.stripe-webhook]
+verify_jwt = false

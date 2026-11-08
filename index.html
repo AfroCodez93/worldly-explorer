@@ -565,6 +565,9 @@
 
   .account-btn:hover { background: var(--gold); color: var(--ink); }
 
+  .account-btn.upgrade-btn { background: var(--gold); color: var(--ink); font-weight: 600; }
+  .account-btn:disabled { opacity: 0.6; cursor: wait; }
+
   .sign-in-form { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
 
   .sign-in-form input {
@@ -1586,6 +1589,8 @@
       <div id="accountSignedIn" hidden>
         <span id="accountEmail"></span>
         <span class="tier-badge" id="tierBadge">Free</span>
+        <button type="button" class="account-btn upgrade-btn" id="upgradeBtn" hidden>Upgrade to Pro</button>
+        <button type="button" class="account-btn" id="manageBtn" hidden>Manage subscription</button>
         <button type="button" class="account-btn" id="signOutBtn">Sign out</button>
       </div>
       <div class="account-msg" id="accountMsg" role="status"></div>
@@ -1798,7 +1803,7 @@
           </div>
 
           <div id="aiModeInfo" class="info-box" style="display:none;">
-            <strong>AI Mode (Pro):</strong> Generate fresh flashcard decks with the AI instructor. Requires a Pro account.
+            <strong>AI Mode:</strong> Generate fresh flashcard decks with the AI instructor. Sign in for a free trial, or go Pro for more.
           </div>
           
           <p style="color:var(--fog); font-size:14px; margin-bottom:20px;">Choose a category to begin</p>
@@ -1841,7 +1846,7 @@
         </div>
 
         <div class="ask-panel" id="askPanel">
-          <div class="ask-title">🎓 Ask the AI instructor <span class="tier-badge">Pro</span></div>
+          <div class="ask-title">🎓 Ask the AI instructor <span class="tier-badge">Free trial · Pro</span></div>
           <form id="askForm" class="ask-form">
             <input type="text" id="askInput" maxlength="500" placeholder="Why did this happen? Tell me more…" required>
             <button type="submit" class="control-btn" id="askBtn">Ask</button>
@@ -4040,8 +4045,17 @@ function getAdaptiveQuestion() {
 // Leave them null and the app runs in local-only mode (progress in this browser).
 const APP_CONFIG = {
   supabaseUrl: null,      // e.g. "https://YOUR-PROJECT.supabase.co"
-  supabaseAnonKey: null
+  supabaseAnonKey: null,
+  proPriceLabel: '$3.99/mo'  // display only; the real price is set in Stripe
 };
+
+// Result of a Stripe Checkout redirect (?checkout=success|cancel), read once.
+const checkoutResult = new URLSearchParams(window.location.search).get('checkout');
+if (checkoutResult) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('checkout');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+}
 
 const sb = (APP_CONFIG.supabaseUrl && APP_CONFIG.supabaseAnonKey && window.supabase)
   ? window.supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseAnonKey)
@@ -4143,7 +4157,9 @@ async function onSignedIn(user) {
   if (!account.user || account.user.id !== user.id) return; // signed out meanwhile
 
   account.tier = profileRes.data && profileRes.data.tier === 'pro' ? 'pro' : 'free';
-  document.getElementById('tierBadge').textContent = account.tier === 'pro' ? 'Pro' : 'Free';
+  renderTier();
+  if (checkoutResult === 'success' && account.tier !== 'pro') waitForPro(user.id);
+  if (checkoutResult === 'cancel') setAccountMsg('Checkout cancelled. You have not been charged.');
 
   if (progressRes.error) {
     // Don't merge or upload: that could overwrite the saved account progress.
@@ -4164,6 +4180,63 @@ async function onSignedIn(user) {
   updateDailyStreak();
   saveProgress();
   if (typeof updateStatsDisplay === 'function') updateStatsDisplay();
+}
+
+function renderTier() {
+  const pro = account.tier === 'pro';
+  document.getElementById('tierBadge').textContent = pro ? 'Pro' : 'Free';
+  const upgrade = document.getElementById('upgradeBtn');
+  upgrade.textContent = `Upgrade to Pro · ${APP_CONFIG.proPriceLabel}`;
+  upgrade.hidden = pro;
+  document.getElementById('manageBtn').hidden = !pro;
+}
+
+// Stripe confirms payment to our webhook a few seconds after checkout, so
+// check the tier a few times before telling the user it's still processing.
+async function waitForPro(userId) {
+  setAccountMsg('Payment received. Activating Pro…');
+  for (let i = 0; i < 15; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    if (!account.user || account.user.id !== userId) return;
+    const { data } = await sb.from('profiles').select('tier').eq('id', userId).maybeSingle();
+    if (data && data.tier === 'pro') {
+      account.tier = 'pro';
+      renderTier();
+      setAccountMsg('Welcome to Pro! 🎉');
+      return;
+    }
+  }
+  setAccountMsg('Your payment is still processing. Refresh in a minute to see Pro.');
+}
+
+// Opens Stripe Checkout or the Stripe customer portal.
+async function openBilling(action, btn) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { setAccountMsg('Please sign in first.'); return; }
+  btn.disabled = true;
+  setAccountMsg(action === 'checkout' ? 'Opening secure checkout…' : 'Opening billing…');
+  try {
+    const res = await fetch(`${APP_CONFIG.supabaseUrl}/functions/v1/billing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: APP_CONFIG.supabaseAnonKey
+      },
+      body: JSON.stringify({ action })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.url) { window.location.href = data.url; return; }
+    const messages = {
+      already_pro: "You're already Pro. Refresh the page to see it.",
+      no_subscription: 'No subscription found for this account.',
+      billing_not_configured: 'Payments are not set up yet.'
+    };
+    setAccountMsg(messages[data.error] || 'Billing is unavailable right now. Please try again.');
+  } catch (e) {
+    setAccountMsg('Billing is unavailable right now. Please try again.');
+  }
+  btn.disabled = false;
 }
 
 function onSignedOut() {
@@ -4196,6 +4269,9 @@ function initAccounts() {
     setAccountMsg(error ? `Couldn't send link: ${error.message}` : 'Check your email for a sign-in link.');
   });
 
+  document.getElementById('upgradeBtn').addEventListener('click', e => openBilling('checkout', e.currentTarget));
+  document.getElementById('manageBtn').addEventListener('click', e => openBilling('portal', e.currentTarget));
+
   document.getElementById('signOutBtn').addEventListener('click', async () => {
     await sb.auth.signOut();
     setAccountMsg('Signed out. Progress stays saved in this browser.');
@@ -4215,12 +4291,12 @@ function initAccounts() {
 }
 
 // All AI goes through the `ai` Edge Function: the API key stays on the server
-// and the server enforces sign-in, Pro tier and the daily limit.
+// and the server enforces sign-in, the free trial and Pro limits.
 async function callAI(body) {
   const fail = msg => { const e = new Error(msg); e.userMessage = msg; return e; };
   if (!sb) throw fail('AI features are coming soon.');
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) throw fail('Sign in with a Pro account to use AI features.');
+  if (!session) throw fail('Sign in to try the AI instructor free.');
 
   const res = await fetch(`${APP_CONFIG.supabaseUrl}/functions/v1/ai`, {
     method: 'POST',
@@ -4236,8 +4312,9 @@ async function callAI(body) {
 
   const messages = {
     sign_in_required: 'Please sign in again to use AI features.',
-    upgrade_required: 'AI features are part of World Explorer Pro.',
-    daily_limit_reached: `You've reached today's AI limit (${data.limit}). It resets at midnight UTC.`,
+    upgrade_required: `AI features are part of World Explorer Pro (${APP_CONFIG.proPriceLabel}). Tap "Upgrade to Pro" at the top.`,
+    trial_used: `You've used your ${data.trial} free AI tries. Upgrade to Pro (${APP_CONFIG.proPriceLabel}) at the top for more.`,
+    limit_reached: `You've reached your AI limit (${data.daily} a day, ${data.monthly} a month). Daily limits reset at midnight UTC.`,
     invalid_question: 'Please keep your question under 500 characters.',
     request_declined: "The instructor can't help with that one. Try a different question.",
     ai_busy: 'The AI is busy right now. Please try again in a minute.'
