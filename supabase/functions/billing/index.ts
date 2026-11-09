@@ -78,6 +78,17 @@ Deno.serve(async (req) => {
 
       // One Stripe customer per user, linked both ways.
       let customerId = profile.stripe_customer_id as string | null;
+
+      // Never sell a second subscription. Our tier can lag behind Stripe (the
+      // webhook may be slow or failing right after payment), so ask Stripe.
+      if (customerId) {
+        const existing = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+        const blocking = existing.data.find((s) =>
+          ["active", "trialing", "past_due", "unpaid", "incomplete"].includes(s.status)
+        );
+        if (blocking) return json(409, { error: "subscription_exists", status: blocking.status });
+      }
+
       if (!customerId) {
         const customer = await stripe.customers.create(
           { email: user.email, metadata: { user_id: user.id } },

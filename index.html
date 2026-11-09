@@ -4229,6 +4229,7 @@ async function openBilling(action, btn) {
     if (res.ok && data.url) { window.location.href = data.url; return; }
     const messages = {
       already_pro: "You're already Pro. Refresh the page to see it.",
+      subscription_exists: "You already have a subscription. If Pro isn't showing yet, refresh in a minute.",
       no_subscription: 'No subscription found for this account.',
       billing_not_configured: 'Payments are not set up yet.'
     };

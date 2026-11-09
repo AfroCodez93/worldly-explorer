@@ -1,5 +1,7 @@
 # Supabase CLI settings for this project.
 # Run `supabase link --project-ref <your-ref>` once; other settings use defaults.
+# project_id is only a local name for the CLI (not your Supabase project ref).
+project_id = "worldly-explorer"
 
 # Stripe can't send a Supabase login token, so the webhook verifies the
 # Stripe signature itself instead.

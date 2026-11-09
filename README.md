@@ -8,7 +8,7 @@ It has quizzes, flashcards, a World Tour, "Today in History", streaks and achiev
 | Mode | What works |
 |------|------------|
 | **Local-only** (default, no setup) | Everything except AI. Progress is saved in the browser. |
-| **With Supabase** | Accounts (email sign-in link), progress synced across devices, and AI features for Pro users. |
+| **With Supabase + Stripe** | Accounts (email sign-in link), progress synced across devices, a free AI trial, and Pro subscriptions. |
 
 ## Free vs Pro
 
@@ -66,7 +66,7 @@ supabase secrets set FREE_TRIAL_AI_LIMIT=3 PRO_DAILY_AI_LIMIT=10 PRO_MONTHLY_AI_
 
 supabase functions deploy ai
 supabase functions deploy billing
-supabase functions deploy stripe-webhook   # JWT check is off for this one via supabase/config.toml
+supabase functions deploy stripe-webhook --no-verify-jwt   # Stripe can't send a login token; the function checks Stripe's signature instead
 ```
 
 ### 4. Test a purchase
