@@ -83,6 +83,15 @@ supabase functions deploy stripe-webhook --no-verify-jwt   # Stripe can't send a
 - **"Adventure Mode — coming soon" sign-ups** use Netlify Forms. In Netlify, open the site, go to **Forms**, and click **Enable form detection**, then redeploy. Sign-ups appear there under the form named `adventure-interest`. The email field is optional, so the submission count is the interest signal.
 - **Globe toggle:** the home-page Earth is a sphere by default. "Think it's flat?" switches it to a flat disc as a joke; the choice is remembered in that browser.
 
+## Adventure Mode prototype
+
+`adventure/index.html` is a standalone, playable prototype set on the National Mall in Washington, DC. It is **not linked from the app yet** (the home page still shows "Coming soon"); open `/adventure/` directly to try it.
+
+- Walk around, talk to 7 locals to learn 13 facts, find 3 hidden items, and shop with earned coins.
+- After 6 facts, Ranger Dee gives a 5-question pop quiz (4 to pass). Failing means reviewing the notebook before a retry. Passing earns the DC passport stamp.
+- All art is original and drawn in code. Progress is saved in the browser only; account sync comes when it is integrated.
+- All facts, items and quiz questions are in the `FACTS`, `ITEMS` and `SHOP` objects at the top of the script.
+
 ## AI cost control
 
 - **Worst case per Pro user per month = `PRO_MONTHLY_AI_LIMIT` × cost per request.** At $3.99, Stripe's fee is about $0.42 (2.9% + 30¢ for US cards), which leaves about $3.57.
