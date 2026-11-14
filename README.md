@@ -77,6 +77,12 @@ supabase functions deploy stripe-webhook --no-verify-jwt   # Stripe can't send a
 4. **Manage subscription** opens Stripe's portal. Cancel there, and the account drops back to Free when the subscription ends.
 5. To go live, repeat Stripe steps 1–4 with Test mode off. Then replace `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID` and `STRIPE_WEBHOOK_SECRET` with the live values.
 
+## Launch notes
+
+- **Accounts are 13+.** The sign-in form requires ticking "I'm 13 or older". A parent/teacher sign-up flow is needed before marketing to younger children or schools.
+- **"Adventure Mode — coming soon" sign-ups** use Netlify Forms. In Netlify, open the site, go to **Forms**, and click **Enable form detection**, then redeploy. Sign-ups appear there under the form named `adventure-interest`. The email field is optional, so the submission count is the interest signal.
+- **Globe toggle:** the home-page Earth is a sphere by default. "Think it's flat?" switches it to a flat disc as a joke; the choice is remembered in that browser.
+
 ## AI cost control
 
 - **Worst case per Pro user per month = `PRO_MONTHLY_AI_LIMIT` × cost per request.** At $3.99, Stripe's fee is about $0.42 (2.9% + 30¢ for US cards), which leaves about $3.57.

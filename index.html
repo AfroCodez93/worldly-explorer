@@ -7,32 +7,36 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink: #1a1208;
-    --parchment: #f5ead6;
-    --parchment-dark: #e8d5b0;
-    --gold: #c8933a;
-    --gold-light: #f0c060;
-    --crimson: #9b2335;
-    --teal: #1a6b6b;
-    --teal-light: #2d9b8a;
-    --fog: #8a7d65;
-    --correct: #2a7a3b;
-    --wrong: #9b2335;
+    --ink: #10203a;
+    --parchment: #fbf1dc;
+    --parchment-dark: #ecd9b0;
+    --gold: #c8862a;
+    --gold-light: #ffc94d;
+    --crimson: #c9304f;
+    --teal: #0f8f8f;
+    --teal-light: #1fc7b0;
+    --fog: #6f6a5c;
+    --correct: #1c8a4a;
+    --wrong: #c9304f;
+    --coral: #ff6b4a;
+    --sky: #2ea8e6;
+    --violet: #7b5cff;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
     font-family: 'DM Sans', sans-serif;
-    background: #2a1f0e;
+    background: #0b1a33;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 16px;
     background-image:
-      radial-gradient(ellipse at 20% 20%, #3d2910 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 80%, #1a1208 0%, transparent 60%),
+      radial-gradient(ellipse at 15% 10%, rgba(31, 199, 176, 0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 90%, rgba(123, 92, 255, 0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 10%, rgba(255, 107, 74, 0.18) 0%, transparent 45%),
       url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   }
 
@@ -1568,6 +1572,104 @@
     line-height: 1.5;
     color: var(--ink);
   }
+
+  /* ===== VIBRANT THEME ===== */
+  .header { background: linear-gradient(135deg, #10203a 0%, #1b2f5c 55%, #3a2a78 100%); }
+  .header::after { height: 4px; background: linear-gradient(90deg, var(--coral), var(--gold-light), var(--teal-light), var(--sky), var(--violet)); }
+  .header-ornament { color: var(--gold-light); opacity: 0.9; }
+  .header-sub { color: #b9c4dd; }
+  .account-bar { color: #b9c4dd; }
+
+  .mode-card { position: relative; overflow: hidden; border-radius: 12px; border-top: 5px solid var(--accent, var(--gold)); }
+  .mode-card:hover { border-color: var(--accent, var(--gold)); box-shadow: 0 10px 24px color-mix(in srgb, var(--accent, var(--gold)) 30%, transparent); }
+  .mode-icon {
+    width: 64px; height: 64px; line-height: 64px; margin: 0 auto 12px; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent, var(--gold)) 16%, white);
+  }
+  .accent-coral { --accent: var(--coral); }
+  .accent-sky { --accent: var(--sky); }
+  .accent-teal { --accent: var(--teal-light); }
+  .accent-violet { --accent: var(--violet); }
+
+  .stats-panel { border-radius: 12px; }
+  .stat-item:nth-child(1) .stat-number { color: #e2552f; }
+  .stat-item:nth-child(2) .stat-number { color: #a86a00; }
+  .stat-item:nth-child(3) .stat-number { color: var(--teal); }
+
+  .today-history-section { border-color: var(--sky); box-shadow: 0 4px 14px rgba(46, 168, 230, 0.18); background: linear-gradient(135deg, #f3faff 0%, #ffffff 100%); }
+  .history-fact { border-left-color: var(--sky); }
+  .history-fact:nth-child(2) { border-left-color: var(--teal-light); }
+  .history-fact:nth-child(3) { border-left-color: var(--violet); }
+  .history-fact:nth-child(4) { border-left-color: var(--coral); }
+  .fact-year { color: #1668a3; }
+
+  /* coming-soon card */
+  .mode-card.coming-soon { cursor: default; background: linear-gradient(160deg, #ffffff 0%, #f2eeff 100%); }
+  .mode-card.coming-soon:hover { transform: none; }
+  .soon-ribbon {
+    position: absolute; top: 18px; right: -38px; width: 140px; text-align: center; transform: rotate(35deg);
+    background: var(--violet); color: white; font-size: 9px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase; padding: 3px 0;
+  }
+  .soon-form { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+  .soon-form input[type="email"] {
+    flex: 1 1 120px; min-width: 0; padding: 7px 9px; font-family: inherit; font-size: 12px;
+    border: 1px solid #b9aef5; border-radius: 6px;
+  }
+  .soon-btn {
+    background: var(--violet); color: white; border: none; border-radius: 6px;
+    padding: 7px 12px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .soon-btn:hover { background: #6546e8; }
+  .soon-btn:disabled { opacity: 0.6; cursor: wait; }
+  .soon-msg { margin-top: 8px; font-size: 12px; color: #4b3bb5; }
+  .soon-msg:empty { display: none; }
+  .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+  .age-check { flex-basis: 100%; font-size: 12px; color: #b9c4dd; display: flex; gap: 6px; justify-content: center; align-items: center; }
+
+  /* ===== EARTH: sphere by default, optional flat disc ===== */
+  .earth-stage { perspective: 600px; height: 112px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+  .earth {
+    --size: 96px;
+    width: var(--size); height: var(--size); border-radius: 50%;
+    position: relative; overflow: hidden;
+    background: radial-gradient(circle at 35% 30%, #5cc8ff 0%, #2a8fe0 45%, #0f4fa3 100%);
+    box-shadow: 0 0 0 2px rgba(46, 168, 230, 0.25), 0 0 26px rgba(46, 168, 230, 0.55);
+    transition: transform 0.6s ease;
+  }
+  .earth-surface {
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cg fill='%2343b96a' stroke='%232e9455' stroke-width='0.6' stroke-linejoin='round'%3E%3Cpolygon points='8.3,13.9 22.2,11.1 47.2,10 55.6,15.6 66.7,22.2 58.3,30.6 54.4,36.1 46.1,40 41.7,37.8 34.4,31.7 30.6,23.3 16.7,17.8'/%3E%3Cpolygon points='46.1,40 51.1,41.7 55.6,45.6 56.7,45 52.8,42.8 48.9,40'/%3E%3Cpolygon points='55.6,45.6 65.6,44.4 72.2,50 80.6,53.9 77.8,62.2 69.4,69.4 62.2,78.9 58.9,75 60.6,61.1 55.6,52.8'/%3E%3Cpolygon points='90.6,38.3 96.7,30.6 105.6,29.4 117.8,32.8 123.9,43.9 128.3,43.9 122.2,52.8 119.4,62.2 115,68.9 110,68.9 106.7,59.4 105,48.3 95.6,47.2 90.6,43.3'/%3E%3Cpolygon points='95,29.4 95,26.1 99.4,23.3 102.8,20.6 104.4,17.8 102.8,15.6 108.3,11.7 115.6,10.6 122.2,12.8 127.8,16.7 127.8,25 122.2,26.7 115.6,29.4 112.2,29.4 108.3,27.8 102.8,26.1 100,28.9'/%3E%3Cpolygon points='127.8,16.7 133.3,11.1 155.6,7.2 177.8,9.4 194.4,13.3 188.9,17.8 177.8,23.3 171.1,30 166.7,36.1 160,43.3 155.6,47.2 154.4,41.7 150,37.8 144.4,45.6 140,38.9 133.3,36.1 126.7,33.3 119.4,31.7 115.6,29.4 122.2,26.7 127.8,25'/%3E%3Cpolygon points='119.4,33.3 126.7,33.3 132.2,37.8 128.9,42.8 123.9,42.8'/%3E%3Cpolygon points='163.3,62.2 172.2,56.7 178.9,56.1 185,65 181.7,71.1 175,68.9 164.4,68.9'/%3E%3Cellipse cx='98.3' cy='19.5' rx='1.6' ry='3'/%3E%3Cellipse cx='176.5' cy='29.5' rx='1.5' ry='4' transform='rotate(-25 176.5 29.5)'/%3E%3Cellipse cx='126' cy='60.5' rx='1.6' ry='4'/%3E%3Cellipse cx='162' cy='50.5' rx='7' ry='1.6'/%3E%3Cellipse cx='193' cy='72.5' rx='1.4' ry='3' transform='rotate(-30 193 72.5)'/%3E%3C/g%3E%3Cg fill='%23f4fbff' stroke='%23d6ecf7' stroke-width='0.5'%3E%3Cpolygon points='69.4,4.4 86.1,5.6 87.8,11.1 76.7,16.7 71.1,12.2'/%3E%3Crect x='-1' y='92' width='202' height='9'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: calc(var(--size) * 2) var(--size);
+    background-repeat: repeat-x;
+    animation: earth-turn 24s linear infinite;
+  }
+  /* sphere shading: highlight top-left, shadow on the far edge */
+  .earth::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 38%),
+                radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 55%, rgba(4,16,48,0.6) 100%);
+    box-shadow: inset -12px -10px 22px rgba(4, 16, 48, 0.55);
+    transition: opacity 0.4s ease;
+  }
+  @keyframes earth-turn { from { background-position-x: 0; } to { background-position-x: calc(var(--size) * 2); } }
+  @keyframes earth-flat-spin { from { transform: rotateX(62deg) rotateZ(0deg); } to { transform: rotateX(62deg) rotateZ(360deg); } }
+
+  .earth.flat { animation: earth-flat-spin 14s linear infinite; box-shadow: 0 10px 0 -2px #0f4fa3, 0 0 22px rgba(46, 168, 230, 0.45); }
+  .earth.flat .earth-surface { animation: none; background-position-x: calc(var(--size) * -0.5); }
+  .earth.flat::after { opacity: 0; }
+
+  .earth-toggle {
+    background: none; border: none; color: var(--fog); font-family: inherit; font-size: 11px;
+    cursor: pointer; text-decoration: underline dotted; margin-bottom: 10px; padding: 4px 8px;
+  }
+  .earth-toggle:hover { color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .earth-surface, .earth.flat { animation: none; }
+    .earth.flat { transform: rotateX(62deg); }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 </head>
@@ -1584,6 +1686,7 @@
         <form id="signInForm" class="sign-in-form" hidden>
           <input type="email" id="signInEmail" placeholder="you@example.com" required autocomplete="email">
           <button type="submit" class="account-btn">Email me a link</button>
+          <label class="age-check"><input type="checkbox" id="signInAge" required> I'm 13 or older</label>
         </form>
       </div>
       <div id="accountSignedIn" hidden>
@@ -1599,7 +1702,10 @@
 
   <!-- MAIN MENU -->
   <div id="menuScreen" class="screen active start-screen">
-    <span class="globe-icon">🌍</span>
+    <div class="earth-stage">
+      <div class="earth" id="earth" role="img" aria-label="The Earth"><div class="earth-surface"></div></div>
+    </div>
+    <button type="button" class="earth-toggle" id="earthToggle" aria-pressed="false">Think it's flat? 🥏</button>
     <h2>Choose Your Adventure</h2>
     <p>Test your knowledge with quizzes or dive deep with interactive flashcards.</p>
 
@@ -1656,20 +1762,33 @@
     </div>
 
     <div class="mode-cards">
-      <div class="mode-card" onclick="showScreen('startScreen')">
+      <div class="mode-card accent-coral" onclick="showScreen('startScreen')">
         <span class="mode-icon">🎮</span>
         <div class="mode-title">Quiz Game</div>
         <div class="mode-desc">Timed questions, scoring, and achievements</div>
       </div>
-      <div class="mode-card" onclick="showWorldTour()">
+      <div class="mode-card accent-sky" onclick="showWorldTour()">
         <span class="mode-icon">✈️</span>
         <div class="mode-title">World Tour</div>
         <div class="mode-desc">Travel the globe, unlock countries</div>
       </div>
-      <div class="mode-card" onclick="showStudyMode()">
+      <div class="mode-card accent-teal" onclick="showStudyMode()">
         <span class="mode-icon">📚</span>
         <div class="mode-title">Study Mode</div>
         <div class="mode-desc">Flashcards with curated or AI-generated content</div>
+      </div>
+      <div class="mode-card accent-violet coming-soon" id="adventureCard">
+        <span class="soon-ribbon">Coming soon</span>
+        <span class="mode-icon">🗺️</span>
+        <div class="mode-title">Adventure Mode</div>
+        <div class="mode-desc">A retro-style journey: explore cities, meet locals, collect items and learn as you go.</div>
+        <form id="adventureForm" name="adventure-interest" method="POST" data-netlify="true" netlify-honeypot="website" class="soon-form">
+          <input type="hidden" name="form-name" value="adventure-interest">
+          <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true">
+          <input type="email" name="email" id="adventureEmail" placeholder="Email (optional)" autocomplete="email" aria-label="Email (optional)">
+          <button type="submit" class="soon-btn" id="adventureBtn">🔔 Notify me</button>
+        </form>
+        <div class="soon-msg" id="adventureMsg" role="status"></div>
       </div>
     </div>
 
@@ -4347,6 +4466,58 @@ document.getElementById('askForm').addEventListener('submit', async e => {
 });
 
 initAccounts();
+
+// ===== EARTH TOGGLE (round by default; a joke option for flat-earthers) =====
+(function () {
+  const earth = document.getElementById('earth');
+  const toggle = document.getElementById('earthToggle');
+  const KEY = 'we_earth_flat';
+  function apply(flat) {
+    earth.classList.toggle('flat', flat);
+    toggle.setAttribute('aria-pressed', String(flat));
+    toggle.textContent = flat ? 'Okay, make it round again 🌍' : "Think it's flat? 🥏";
+  }
+  let flat = false;
+  try { flat = localStorage.getItem(KEY) === '1'; } catch (e) {}
+  apply(flat);
+  toggle.addEventListener('click', () => {
+    flat = !flat;
+    apply(flat);
+    try { localStorage.setItem(KEY, flat ? '1' : '0'); } catch (e) {}
+  });
+})();
+
+// ===== ADVENTURE MODE INTEREST (Netlify Forms; counts sign-ups in the Netlify dashboard) =====
+(function () {
+  const form = document.getElementById('adventureForm');
+  const btn = document.getElementById('adventureBtn');
+  const msg = document.getElementById('adventureMsg');
+  const KEY = 'we_adventure_interest';
+  function done() {
+    form.hidden = true;
+    msg.textContent = "You're on the list! We'll let you know when it's ready.";
+  }
+  try { if (localStorage.getItem(KEY) === '1') done(); } catch (e) {}
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    btn.disabled = true;
+    msg.textContent = '';
+    try {
+      const res = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(form)).toString()
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      try { localStorage.setItem(KEY, '1'); } catch (err) {}
+      done();
+    } catch (err) {
+      msg.textContent = "Couldn't save that right now. Please try again later.";
+      btn.disabled = false;
+    }
+  });
+})();
 </script>
 </body>
 </html>
