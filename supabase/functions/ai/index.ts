@@ -3,23 +3,36 @@
 // Why this exists: the Anthropic API key must never ship in the browser, and
 // free users must not be able to run up the bill. Every request here:
 //   1. must come from a signed-in user (Supabase JWT),
-//   2. must belong to a paid ("pro") account,
-//   3. must fit inside that user's daily AI limit (counted in the database),
-//   4. can only run prompts defined on this server (no free-form proxying).
+//   2. free users get a small lifetime trial on a low-cost model; Pro users
+//      get daily and monthly caps (all counted in the database),
+//   3. can only run prompts defined on this server (no free-form proxying).
 //
 // Secrets (set with `supabase secrets set ...`):
 //   ANTHROPIC_API_KEY      required
-//   ANTHROPIC_MODEL        optional, defaults to claude-opus-5-5
-//   PRO_DAILY_AI_LIMIT     optional, defaults to 30 requests per user per UTC day
-//   ALLOWED_ORIGIN         optional, e.g. https://afrocodez93.github.io (defaults to *)
+//   PRO_MODEL              optional, defaults to claude-opus-5-5
+//   TRIAL_MODEL            optional, defaults to claude-haiku-5-5
+//   FREE_TRIAL_AI_LIMIT    optional, lifetime requests for free users, default 3 (0 = no trial)
+//   PRO_DAILY_AI_LIMIT     optional, default 10 requests per UTC day
+//   PRO_MONTHLY_AI_LIMIT   optional, default 100 requests per UTC calendar month
+//   ALLOWED_ORIGIN         optional, e.g. https://your-site.netlify.app (defaults to *)
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase automatically.
 
 import Anthropic from "npm:@anthropic-ai/sdk@0.135.0";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-opus-5-5";
-const limitEnv = Number.parseInt(Deno.env.get("PRO_DAILY_AI_LIMIT") ?? "", 10);
-const PRO_DAILY_LIMIT = Number.isFinite(limitEnv) && limitEnv > 0 ? limitEnv : 30;
+function intEnv(name: string, fallback: number, min = 1): number {
+  const v = Number.parseInt(Deno.env.get(name) ?? "", 10);
+  return Number.isFinite(v) && v >= min ? v : fallback;
+}
+
+const PRO_MODEL = Deno.env.get("PRO_MODEL") ?? "claude-opus-5-5";
+const TRIAL_MODEL = Deno.env.get("TRIAL_MODEL") ?? "claude-haiku-5-5";
+const FREE_TRIAL_LIMIT = intEnv("FREE_TRIAL_AI_LIMIT", 3, 0);
+const PRO_DAILY_LIMIT = intEnv("PRO_DAILY_AI_LIMIT", 10);
+const PRO_MONTHLY_LIMIT = intEnv("PRO_MONTHLY_AI_LIMIT", 100);
+
+// Server-side refusal fallbacks exist for these models only (not Haiku).
+const supportsFallback = (model: string) => /^claude-(opus-5|sonnet-5-5|fable-5)/.test(model);
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
@@ -96,9 +109,14 @@ Deno.serve(async (req) => {
   if (userErr || !userData?.user) return json(401, { error: "sign_in_required" });
   const userId = userData.user.id;
 
-  // 2. Are they paid?
+  // 2. Pro or free trial?
   const { data: profile } = await admin.from("profiles").select("tier").eq("id", userId).single();
-  if (profile?.tier !== "pro") return json(403, { error: "upgrade_required" });
+  const isPro = profile?.tier === "pro";
+  if (!isPro && FREE_TRIAL_LIMIT === 0) return json(403, { error: "upgrade_required" });
+  const model = isPro ? PRO_MODEL : TRIAL_MODEL;
+  const fallback = supportsFallback(model)
+    ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
+    : {};
 
   // 3. Validate input before spending a credit.
   let body: { action?: string; category?: string; question?: string; context?: string };
@@ -113,13 +131,12 @@ Deno.serve(async (req) => {
     const category = body.category as Category;
     if (!CATEGORIES.includes(category)) return json(400, { error: "invalid_category" });
     request = {
-      model: MODEL,
+      model,
       max_tokens: 6000,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: DECK_PROMPTS[category] }],
       output_config: { effort: "low", format: { type: "json_schema", schema: DECK_SCHEMA } },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      ...fallback,
     };
   } else if (body.action === "ask") {
     const question = (body.question ?? "").trim();
@@ -131,25 +148,30 @@ Deno.serve(async (req) => {
       ? `The learner is studying this fact:\n<fact>\n${context}\n</fact>\n\nTheir question:\n<question>\n${question}\n</question>\n\nAnswer in under 200 words.`
       : `Learner's question:\n<question>\n${question}\n</question>\n\nAnswer in under 200 words.`;
     request = {
-      model: MODEL,
+      model,
       max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content }],
       output_config: { effort: "low" },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      ...fallback,
     };
   } else {
     return json(400, { error: "invalid_action" });
   }
 
-  // 4. Take one credit (atomic; fails when the daily limit is reached).
-  const { data: allowed, error: quotaErr } = await admin.rpc("consume_ai_quota", {
+  // 4. Take one credit (atomic). Free: lifetime trial. Pro: daily + monthly caps.
+  const { data: allowed, error: quotaErr } = await admin.rpc("consume_ai_credit", {
     p_user: userId,
-    p_limit: PRO_DAILY_LIMIT,
+    p_daily: isPro ? PRO_DAILY_LIMIT : null,
+    p_monthly: isPro ? PRO_MONTHLY_LIMIT : null,
+    p_lifetime: isPro ? null : FREE_TRIAL_LIMIT,
   });
   if (quotaErr) return json(500, { error: "quota_check_failed" });
-  if (!allowed) return json(429, { error: "daily_limit_reached", limit: PRO_DAILY_LIMIT });
+  if (!allowed) {
+    return isPro
+      ? json(429, { error: "limit_reached", daily: PRO_DAILY_LIMIT, monthly: PRO_MONTHLY_LIMIT })
+      : json(403, { error: "trial_used", trial: FREE_TRIAL_LIMIT });
+  }
 
   // 5. Call Claude. Refund the credit if anything goes wrong.
   try {

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>World Explorer — Adventure Prototype: Washington, DC</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #10203a; --parchment: #fbf1dc; --parchment-dark: #ecd9b0; --gold: #c8862a;
+    --gold-light: #ffc94d; --teal: #0f8f8f; --coral: #ff6b4a; --violet: #7b5cff; --fog: #6f6a5c;
+    --correct: #1c8a4a; --wrong: #c9304f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  body {
+    font-family: 'DM Sans', sans-serif; color: var(--ink); min-height: 100vh; padding: 12px;
+    background: #0b1a33;
+    background-image: radial-gradient(ellipse at 15% 10%, rgba(31,199,176,.35) 0%, transparent 55%),
+                      radial-gradient(ellipse at 90% 90%, rgba(123,92,255,.35) 0%, transparent 55%);
+    display: flex; justify-content: center;
+    -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  }
+  .frame { width: 100%; max-width: 760px; }
+  .top {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    background: linear-gradient(135deg, #10203a, #1b2f5c 55%, #3a2a78); color: var(--parchment);
+    padding: 10px 14px; border-radius: 10px 10px 0 0; border-bottom: 4px solid var(--gold-light);
+  }
+  .top h1 { font-family: 'Playfair Display', serif; font-size: 18px; }
+  .top h1 span { color: var(--gold-light); }
+  .top a { color: #b9c4dd; font-size: 12px; }
+  .proto { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; background: var(--violet); color: #fff; padding: 2px 8px; border-radius: 10px; }
+  .hud { display: flex; gap: 8px; align-items: center; background: var(--ink); color: var(--parchment); padding: 8px 12px; font-size: 13px; flex-wrap: wrap; }
+  .hud .pill { background: rgba(255,255,255,.1); border-radius: 12px; padding: 3px 10px; }
+  .hud .spacer { flex: 1; }
+  .btn {
+    font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: none; border-radius: 6px;
+    padding: 7px 12px; background: var(--gold-light); color: var(--ink);
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.alt { background: var(--teal); color: #fff; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .stage { position: relative; background: #000; line-height: 0; border-radius: 0 0 10px 10px; overflow: hidden; }
+  canvas { width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+
+  /* dialog */
+  .dialog {
+    position: absolute; left: 2%; right: 2%; bottom: 3%; line-height: 1.45;
+    background: var(--parchment); border: 3px solid var(--gold); border-radius: 8px; padding: 10px 14px 12px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.35); cursor: pointer; font-size: clamp(13px, 2.4vw, 16px);
+  }
+  .dialog .who { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--teal); margin-bottom: 2px; }
+  .dialog .more { float: right; color: var(--gold); font-weight: 700; animation: bob .8s infinite alternate; }
+  @keyframes bob { to { transform: translateY(3px); } }
+
+  /* panels (notebook, quiz, shop) */
+  .panel {
+    position: absolute; inset: 4%; background: var(--parchment); border: 3px solid var(--gold); border-radius: 10px;
+    padding: 14px 16px; overflow-y: auto; line-height: 1.5; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    -webkit-user-select: text; user-select: text;
+  }
+  .panel h2 { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 8px; }
+  .panel h3 { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--teal); margin: 12px 0 4px; }
+  .panel .close { position: sticky; top: 0; float: right; }
+  .fact { background: #fff; border-left: 4px solid var(--teal); border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; }
+  .fact.locked { border-left-color: var(--parchment-dark); color: var(--fog); font-style: italic; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; }
+  .row small { color: var(--fog); display: block; }
+  .stamp { display: inline-block; border: 3px double var(--wrong); color: var(--wrong); font-weight: 700; padding: 6px 12px; border-radius: 6px; transform: rotate(-4deg); margin: 6px 0; text-transform: uppercase; letter-spacing: 1px; }
+  .opts { display: grid; gap: 8px; margin-top: 10px; }
+  .opt { text-align: left; background: #fff; border: 2px solid var(--parchment-dark); border-radius: 6px; padding: 9px 12px; font-family: inherit; font-size: 14px; cursor: pointer; }
+  .opt:hover:not(:disabled) { border-color: var(--gold); }
+  .opt.right { border-color: var(--correct); background: #e6f6ec; }
+  .opt.wrong { border-color: var(--wrong); background: #fbe9ed; }
+  .progress { color: var(--fog); font-size: 12px; }
+
+  /* touch controls */
+  .pad { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 12px; }
+  .dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); }
+  .dpad button, .abtn {
+    border: none; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; border-radius: 10px; cursor: pointer;
+  }
+  .dpad button:active, .abtn:active { background: rgba(255,255,255,.3); }
+  .dpad .u { grid-area: 1 / 2; } .dpad .l { grid-area: 2 / 1; } .dpad .r { grid-area: 2 / 3; } .dpad .d { grid-area: 3 / 2; }
+  .abtn { width: 84px; height: 84px; border-radius: 50%; background: var(--coral); font-weight: 700; font-size: 16px; }
+  .help { color: #b9c4dd; font-size: 12px; text-align: center; margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="top">
+    <h1>World <span>Explorer</span> · Washington, DC</h1>
+    <span class="proto">Prototype</span>
+    <a href="../">← Back to World Explorer</a>
+  </div>
+  <div class="hud">
+    <span class="pill">🪙 <b id="hudCoins">0</b></span>
+    <span class="pill">📖 Facts <b id="hudFacts">0/0</b></span>
+    <span class="pill" id="hudPlace">The National Mall</span>
+    <span class="spacer"></span>
+    <button class="btn" id="notebookBtn">📓 Notebook</button>
+  </div>
+  <div class="stage">
+    <canvas id="game" width="240" height="176" aria-label="Game map of the National Mall in Washington, DC"></canvas>
+    <div class="dialog" id="dialog" hidden><div class="who" id="dialogWho"></div><span id="dialogText"></span><span class="more">▼</span></div>
+    <div class="panel" id="panel" hidden></div>
+  </div>
+  <div class="pad" aria-label="Touch controls">
+    <div class="dpad">
+      <button class="u" data-dir="up" aria-label="Up">▲</button>
+      <button class="l" data-dir="left" aria-label="Left">◀</button>
+      <button class="r" data-dir="right" aria-label="Right">▶</button>
+      <button class="d" data-dir="down" aria-label="Down">▼</button>
+    </div>
+    <button class="abtn" id="aBtn" aria-label="Talk or interact">TALK</button>
+  </div>
+  <p class="help">Move: arrow keys / WASD or the pad · Talk: Space / Enter or TALK · Notebook: N<br>Meet the locals, learn the facts, find hidden items ✨, then take the Ranger's quiz.</p>
+</div>
+
+<script>
+'use strict';
+// =====================================================================
+// World Explorer Adventure — prototype (Washington, DC)
+// Original art drawn in code; all facts live in FACTS below.
+// =====================================================================
+const T = 16, VIEW_W = 15, VIEW_H = 11, MAP_W = 44, MAP_H = 24;
+const SAVE_KEY = 'we_adventure_dc_v1';
+const QUIZ_UNLOCK = 6, QUIZ_LEN = 5, QUIZ_PASS = 4;
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// ---------- content ----------
+const FACTS = {
+  lincoln_columns: { place: 'Lincoln Memorial', text: 'The Lincoln Memorial has 36 columns, one for each state in the Union when Abraham Lincoln died in 1865.',
+    q: 'What do the 36 columns of the Lincoln Memorial stand for?', a: 'The states in the Union when Lincoln died', wrong: ['The years Lincoln lived in Washington', 'The original colonies and territories', 'The battles of the Civil War'] },
+  mlk_speech: { place: 'Lincoln Memorial', text: 'Martin Luther King Jr. gave his "I Have a Dream" speech from the steps of the Lincoln Memorial on August 28, 1963.',
+    q: 'Where did Martin Luther King Jr. give his "I Have a Dream" speech in 1963?', a: 'On the steps of the Lincoln Memorial', wrong: ['Inside the U.S. Capitol', 'At the White House gates', 'At the Washington Monument'] },
+  pool_length: { place: 'Reflecting Pool', text: 'The Lincoln Memorial Reflecting Pool is more than 2,000 feet long, over a third of a mile.',
+    q: 'About how long is the Lincoln Memorial Reflecting Pool?', a: 'More than 2,000 feet', wrong: ['About 200 feet', 'About 500 feet', 'More than 2 miles'] },
+  dc_founded: { place: 'Reflecting Pool', text: 'Washington, DC was created as the U.S. capital in 1790 and named for George Washington. Pierre L\'Enfant drew its city plan in 1791. It is a federal district, not a state.',
+    q: 'Washington, DC is best described as…', a: 'A federal district, not a state', wrong: ['The smallest U.S. state', 'A city in Maryland', 'A city in Virginia'] },
+  monument_height: { place: 'Washington Monument', text: 'The Washington Monument is about 555 feet tall. It was completed in 1884.',
+    q: 'About how tall is the Washington Monument?', a: 'About 555 feet', wrong: ['About 155 feet', 'About 305 feet', 'About 1,050 feet'] },
+  monument_color: { place: 'Washington Monument', text: 'The Washington Monument changes color partway up. Building stopped for more than 20 years, and the stone used afterward came from a different quarry.',
+    q: 'Why does the Washington Monument change color partway up?', a: 'Building paused for 20+ years and later stone came from a different quarry', wrong: ['The top was painted to mark the year 1900', 'Lightning scorched the upper half', 'The lower half is cleaned more often'] },
+  white_house_address: { place: 'White House', text: 'The White House is at 1600 Pennsylvania Avenue. John Adams was the first president to live there, in 1800.',
+    q: 'Who was the first president to live in the White House?', a: 'John Adams', wrong: ['George Washington', 'Thomas Jefferson', 'Abraham Lincoln'] },
+  white_house_fire: { place: 'White House', text: 'British troops burned the White House in 1814, during the War of 1812. It was rebuilt afterward.',
+    q: 'What happened to the White House in 1814?', a: 'British troops burned it', wrong: ['It was first opened to the public', 'It was painted white for the first time', 'An earthquake damaged it'] },
+  capitol_congress: { place: 'U.S. Capitol', text: 'The U.S. Capitol is where Congress meets: the Senate in one wing and the House of Representatives in the other.',
+    q: 'Who meets in the U.S. Capitol?', a: 'Congress: the Senate and the House', wrong: ['The Supreme Court', 'The President\'s Cabinet', 'The state governors'] },
+  capitol_statue: { place: 'U.S. Capitol', text: 'The bronze statue on top of the Capitol dome is called the Statue of Freedom. It was placed there in 1863.',
+    q: 'What is the statue on top of the Capitol dome called?', a: 'The Statue of Freedom', wrong: ['The Statue of Liberty', 'Lady Justice', 'The Spirit of Columbia'] },
+  smithson: { place: 'Smithsonian Castle', text: 'The Smithsonian was founded in 1846 with money left by James Smithson, a British scientist who never visited the United States.',
+    q: 'What is surprising about James Smithson, whose money founded the Smithsonian?', a: 'He never visited the United States', wrong: ['He was a U.S. president', 'He designed the Capitol dome', 'He was the first museum guide'] },
+  smithsonian_free: { place: 'Smithsonian Castle', text: 'The Smithsonian museums in Washington, DC are free to enter.',
+    q: 'How much does it cost to enter the Smithsonian museums in DC?', a: 'Nothing, they are free', wrong: ['$5 per person', '$20 per person', 'Free only on Sundays'] },
+  cherry_trees: { place: 'Tidal Basin', text: 'Washington\'s famous cherry trees were a gift of friendship from Tokyo, Japan, in 1912.',
+    q: 'Where did Washington\'s famous cherry trees come from?', a: 'A gift from Tokyo, Japan, in 1912', wrong: ['A gift from Paris, France, in 1889', 'Seeds planted by George Washington', 'A gift from London, England, in 1812'] },
+};
+const FACT_IDS = Object.keys(FACTS);
+
+const ITEMS = {
+  blossom: { name: 'Cherry Blossom', icon: '🌸', about: 'Each spring, DC holds the National Cherry Blossom Festival when the trees bloom.' },
+  halfsmoke: { name: 'Half-Smoke', icon: '🌭', about: 'The half-smoke, a smoky sausage in a bun, is DC\'s signature street food.' },
+  gogo: { name: 'Go-Go Record', icon: '💿', about: 'Go-go is a funk-based music style that was born in Washington, DC. It became the city\'s official music in 2020.' },
+};
+const SHOP = {
+  hat: { name: 'Park Ranger Hat', icon: '🎩', price: 40, about: 'A flat-brimmed hat like the ones National Park Service rangers wear on the Mall. You can wear it!' },
+  kite: { name: 'Mall Kite', icon: '🪁', price: 25, about: 'Kite flying on the National Mall is a springtime tradition during the cherry blossom season.' },
+  constitution: { name: 'Pocket Constitution', icon: '📜', price: 30, about: 'The original U.S. Constitution is on display at the National Archives in Washington, DC.' },
+};
+
+// ---------- map ----------
+const G = 0, PATH = 1, WATER = 2, TREE = 3, CHERRY = 4, SOLID = 5, FLOWER = 6;
+const map = Array.from({ length: MAP_H }, () => new Array(MAP_W).fill(G));
+const fill = (x, y, w, h, t) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) map[j][i] = t; };
+fill(0, 0, MAP_W, 1, TREE); fill(0, MAP_H - 1, MAP_W, 1, TREE); fill(0, 0, 1, MAP_H, TREE); fill(MAP_W - 1, 0, 1, MAP_H, TREE);
+fill(7, 13, 29, 2, PATH);          // main walk along the Mall
+fill(7, 9, 1, 4, PATH);            // Lincoln steps
+fill(20, 5, 6, 8, PATH);           // plaza: White House to the Monument
+fill(35, 10, 1, 5, PATH);          // to the Capitol
+fill(30, 15, 1, 1, PATH);          // to the Castle
+fill(12, 15, 1, 2, PATH);          // to the Tidal Basin
+fill(9, 10, 10, 2, WATER);         // Reflecting Pool
+fill(8, 17, 8, 5, WATER);          // Tidal Basin
+for (let x = 8; x <= 15; x++) if (x !== 12) map[16][x] = CHERRY;
+for (let y = 17; y <= 21; y++) { map[y][7] = CHERRY; map[y][16] = CHERRY; }
+[[3,3],[6,5],[10,4],[14,6],[16,3],[29,4],[32,6],[38,3],[40,5],[4,19],[20,18],[24,20],[36,18],[40,20],[27,9],[31,10],[18,20],[35,21],[5,7],[13,7]]
+  .forEach(([x, y]) => { map[y][x] = TREE; });
+[[9,8],[15,8],[21,16],[26,17],[33,14],[19,6],[27,6],[38,16],[3,14],[5,15]].forEach(([x, y]) => { if (map[y][x] === G) map[y][x] = FLOWER; });
+
+// landmarks: solid footprint (tiles) + art drawn in pixels
+const LANDMARKS = [
+  { id: 'lincoln', name: 'Lincoln Memorial', x: 2, y: 9, w: 5, h: 4, draw: drawLincoln },
+  { id: 'monument', name: 'Washington Monument', x: 22, y: 9, w: 2, h: 3, draw: drawMonument },
+  { id: 'whitehouse', name: 'White House', x: 20, y: 2, w: 6, h: 3, draw: drawWhiteHouse },
+  { id: 'capitol', name: 'U.S. Capitol', x: 36, y: 8, w: 6, h: 5, draw: drawCapitol },
+  { id: 'castle', name: 'Smithsonian Castle', x: 28, y: 16, w: 5, h: 4, draw: drawCastle },
+  { id: 'stall', name: 'Souvenir Stand', x: 17, y: 15, w: 2, h: 1, draw: drawStall },
+];
+LANDMARKS.forEach(l => fill(l.x, l.y, l.w, l.h, SOLID));
+
+const NPCS = [
+  { id: 'maya', name: 'Maya, tour guide', x: 8, y: 12, skin: '#8d5a3b', hair: '#1c1310', shirt: '#ff6b4a', facts: ['lincoln_columns', 'mlk_speech'],
+    hello: 'Welcome to the Lincoln Memorial! Count the columns if you like.' },
+  { id: 'okafor', name: 'Mr. Okafor, history teacher', x: 19, y: 9, skin: '#5b3a26', hair: '#2b2b2b', shirt: '#2ea8e6', facts: ['pool_length', 'dc_founded'],
+    hello: 'Ah, a fellow explorer. This pool has seen a lot of history.' },
+  { id: 'sam', name: 'Sam, jogger', x: 21, y: 12, skin: '#f0c9a0', hair: '#b5651d', shirt: '#1fc7b0', facts: ['monument_height', 'monument_color'],
+    hello: 'Phew! I run laps around the Monument every morning.' },
+  { id: 'alvarez', name: 'Ms. Alvarez, guide', x: 24, y: 5, skin: '#c98f62', hair: '#3b2314', shirt: '#7b5cff', facts: ['white_house_address', 'white_house_fire'],
+    hello: 'That\'s the White House behind me. Want to hear about it?' },
+  { id: 'jordan', name: 'Jordan, intern', x: 34, y: 12, skin: '#a9714b', hair: '#101010', shirt: '#c9304f', facts: ['capitol_congress', 'capitol_statue'],
+    hello: 'I work up at the Capitol. It\'s my first week!' },
+  { id: 'lin', name: 'Professor Lin', x: 31, y: 15, skin: '#e8b98f', hair: '#6f6f6f', shirt: '#0f8f8f', facts: ['smithson', 'smithsonian_free'],
+    hello: 'The Castle is the Smithsonian\'s first building. Curious how it began?' },
+  { id: 'aiko', name: 'Aiko, gardener', x: 11, y: 15, skin: '#f2d0a9', hair: '#1a1a1a', shirt: '#e85d9a', facts: ['cherry_trees'],
+    hello: 'I look after the cherry trees by the Tidal Basin.' },
+  { id: 'ranger', name: 'Ranger Dee', x: 25, y: 10, skin: '#7a4a2e', hair: '#1c1310', shirt: '#5d6b3a', hat: true, ranger: true },
+];
+const ITEM_SPOTS = [ { id: 'blossom', x: 10, y: 22 }, { id: 'halfsmoke', x: 38, y: 14 }, { id: 'gogo', x: 4, y: 16 } ];
+
+// ---------- state ----------
+const fresh = () => ({ x: 22, y: 14, dir: 'down', facts: [], items: [], bought: [], coins: 0, hatOn: false, needsReview: false, stamp: false, met: [] });
+let state = fresh();
+try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && Array.isArray(s.facts)) state = Object.assign(fresh(), s); } catch (e) {}
+const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} };
+
+let mode = 'walk';                       // walk | dialog | panel
+let px = state.x * T, py = state.y * T;  // pixel position (for smooth steps)
+let moving = null, stepFrame = 0, tick = 0;
+const held = new Set();
+
+// ---------- helpers ----------
+const npcAt = (x, y) => NPCS.find(n => n.x === x && n.y === y);
+const solid = (x, y) => x < 0 || y < 0 || x >= MAP_W || y >= MAP_H || [WATER, TREE, CHERRY, SOLID].includes(map[y][x]) || !!npcAt(x, y);
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const hash = (x, y) => { let h = (x * 374761393 + y * 668265263) ^ 0x5bd1e995; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const el = id => document.getElementById(id);
+
+function updateHud() {
+  el('hudCoins').textContent = state.coins;
+  el('hudFacts').textContent = `${state.facts.length}/${FACT_IDS.length}`;
+  const near = LANDMARKS.filter(l => l.id !== 'stall').map(l => ({ l, d: Math.hypot(l.x + l.w / 2 - state.x, l.y + l.h / 2 - state.y) })).sort((a, b) => a.d - b.d)[0];
+  el('hudPlace').textContent = near && near.d < 7 ? near.l.name : 'The National Mall';
+}
+
+// ---------- dialog ----------
+let dialogQueue = [], dialogDone = null;
+function say(who, lines, done) {
+  dialogQueue = lines.slice(); dialogDone = done || null; mode = 'dialog';
+  el('dialogWho').textContent = who; el('dialog').hidden = false; nextLine();
+}
+function nextLine() {
+  if (!dialogQueue.length) {
+    el('dialog').hidden = true; mode = 'walk';
+    const d = dialogDone; dialogDone = null; if (d) d();
+    return;
+  }
+  el('dialogText').textContent = dialogQueue.shift();
+}
+el('dialog').addEventListener('click', nextLine);
+
+// ---------- panels ----------
+function openPanel(html) { el('panel').innerHTML = html; el('panel').hidden = false; el('panel').scrollTop = 0; mode = 'panel'; }
+function closePanel() { el('panel').hidden = true; mode = 'walk'; }
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function openNotebook() {
+  if (mode === 'dialog') return;
+  state.needsReview = false; save();
+  const places = [...new Set(FACT_IDS.map(id => FACTS[id].place))];
+  let h = `<button class="btn close" data-close>Close ✕</button><h2>📓 Field Notebook</h2>
+    <div>🪙 <b>${state.coins}</b> coins · 📖 <b>${state.facts.length}/${FACT_IDS.length}</b> facts</div>`;
+  if (state.stamp) h += `<div class="stamp">✓ Washington, DC · Passport stamp</div>`;
+  places.forEach(p => {
+    h += `<h3>${esc(p)}</h3>`;
+    FACT_IDS.filter(id => FACTS[id].place === p).forEach(id => {
+      h += state.facts.includes(id) ? `<div class="fact">${esc(FACTS[id].text)}</div>` : `<div class="fact locked">Not learned yet. Someone nearby knows this one.</div>`;
+    });
+  });
+  h += `<h3>Collection</h3>`;
+  const owned = [...state.items.map(i => ITEMS[i]), ...state.bought.map(i => SHOP[i])];
+  if (!owned.length) h += `<div class="fact locked">Nothing yet. Look for sparkles ✨ on the grass, or visit the Souvenir Stand.</div>`;
+  owned.forEach(o => { h += `<div class="row"><div><b>${o.icon} ${esc(o.name)}</b><small>${esc(o.about)}</small></div></div>`; });
+  if (state.bought.includes('hat')) h += `<button class="btn alt" data-hat>${state.hatOn ? 'Take off' : 'Wear'} the Ranger Hat</button>`;
+  h += `<h3>Prototype</h3><button class="btn" data-reset style="background:#fff;border:1px solid var(--parchment-dark)">Start over</button>`;
+  openPanel(h);
+}
+
+function openShop() {
+  let h = `<button class="btn close" data-close>Close ✕</button><h2>🛍️ Souvenir Stand</h2><div>You have 🪙 <b>${state.coins}</b> coins. Earn more by learning facts and finding items.</div><h3>For sale</h3>`;
+  Object.entries(SHOP).forEach(([id, it]) => {
+    const own = state.bought.includes(id);
+    h += `<div class="row"><div><b>${it.icon} ${esc(it.name)}</b><small>${esc(it.about)}</small></div>
+      <button class="btn" data-buy="${id}" ${own || state.coins < it.price ? 'disabled' : ''}>${own ? 'Owned' : '🪙 ' + it.price}</button></div>`;
+  });
+  openPanel(h);
+}
+
+let quiz = null;
+function startQuiz() {
+  const ids = shuffle(state.facts).slice(0, QUIZ_LEN);
+  quiz = { ids, i: 0, score: 0 };
+  showQuestion();
+}
+function showQuestion() {
+  const f = FACTS[quiz.ids[quiz.i]];
+  const opts = shuffle([f.a, ...shuffle(f.wrong).slice(0, 3)]);
+  let h = `<h2>🧭 Ranger Dee's Pop Quiz</h2><div class="progress">Question ${quiz.i + 1} of ${quiz.ids.length} · Score ${quiz.score}</div>
+    <p style="margin-top:8px;font-weight:600">${esc(f.q)}</p><div class="opts">`;
+  opts.forEach(o => { h += `<button class="opt" data-answer="${esc(o)}">${esc(o)}</button>`; });
+  openPanel(h + `</div><div id="quizNext" style="margin-top:12px"></div>`);
+}
+function answer(btn) {
+  const f = FACTS[quiz.ids[quiz.i]];
+  const right = btn.dataset.answer === f.a;
+  if (right) quiz.score++;
+  el('panel').querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b.dataset.answer === f.a) b.classList.add('right'); });
+  if (!right) btn.classList.add('wrong');
+  const last = quiz.i === quiz.ids.length - 1;
+  el('quizNext').innerHTML = `<p>${right ? '✅ Correct!' : '❌ Not quite.'}</p><button class="btn" data-next style="margin-top:8px">${last ? 'See result' : 'Next question'}</button>`;
+}
+function nextQuestion() {
+  quiz.i++;
+  if (quiz.i < quiz.ids.length) return showQuestion();
+  const passed = quiz.score >= QUIZ_PASS, score = quiz.score, total = quiz.ids.length;
+  quiz = null; closePanel();
+  if (passed) {
+    const first = !state.stamp;
+    state.stamp = true; if (first) state.coins += 30; save(); updateHud();
+    say('Ranger Dee', [`${score} out of ${total}. Outstanding!`, first ? 'Here is your Washington, DC passport stamp, and 30 coins. 🎉' : 'You already have your stamp, but nicely done again!',
+      'That\'s the end of this prototype. More cities are on the way. Thanks for exploring!']);
+  } else {
+    state.needsReview = true; save();
+    say('Ranger Dee', [`${score} out of ${total}. You need ${QUIZ_PASS} to pass.`, 'Open your 📓 Notebook and review your facts, then come back and try again.']);
+  }
+}
+
+el('panel').addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.close !== undefined) return closePanel();
+  if (t.dataset.hat !== undefined) { state.hatOn = !state.hatOn; save(); return openNotebook(); }
+  if (t.dataset.reset !== undefined) { if (confirm('Start the prototype over? Your progress here will be erased.')) { state = fresh(); px = state.x * T; py = state.y * T; save(); updateHud(); closePanel(); } return; }
+  if (t.dataset.buy) { const it = SHOP[t.dataset.buy]; if (state.coins >= it.price && !state.bought.includes(t.dataset.buy)) { state.coins -= it.price; state.bought.push(t.dataset.buy); if (t.dataset.buy === 'hat') state.hatOn = true; save(); updateHud(); } return openShop(); }
+  if (t.dataset.answer !== undefined) return answer(t);
+  if (t.dataset.next !== undefined) return nextQuestion();
+});
+el('notebookBtn').addEventListener('click', () => { if (mode === 'panel' && !quiz) closePanel(); else if (mode === 'walk') openNotebook(); });
+
+// ---------- interactions ----------
+function talk(npc) {
+  if (npc.ranger) return talkRanger();
+  const unknown = npc.facts.filter(f => !state.facts.includes(f));
+  if (!unknown.length) return say(npc.name, ['You already know everything I can teach you. Check your notebook if you forget!']);
+  const lines = state.met.includes(npc.id) ? [] : [npc.hello];
+  if (!state.met.includes(npc.id)) state.met.push(npc.id);
+  const f = unknown[0];
+  lines.push(FACTS[f].text, `📖 Added to your notebook. +5 coins${unknown.length > 1 ? '. Talk to me again for one more!' : '.'}`);
+  say(npc.name, lines, () => {
+    state.facts.push(f); state.coins += 5; save(); updateHud();
+    if (state.facts.length === QUIZ_UNLOCK) say('Notebook', [`You've learned ${QUIZ_UNLOCK} facts! Ranger Dee, by the Washington Monument, has a pop quiz for you.`]);
+  });
+}
+function talkRanger() {
+  if (state.facts.length < QUIZ_UNLOCK) return say('Ranger Dee', ['Welcome to the National Mall!', `Learn at least ${QUIZ_UNLOCK} facts from the people around here (you have ${state.facts.length}), then come see me for a pop quiz.`]);
+  if (state.needsReview) return say('Ranger Dee', ['Not so fast! Open your 📓 Notebook and review your facts first, then talk to me again.']);
+  say('Ranger Dee', [state.stamp ? 'Back for another round? Let\'s go!' : `Ready? ${QUIZ_LEN} questions. Get ${QUIZ_PASS} right to earn your DC passport stamp.`], startQuiz);
+}
+function interact() {
+  if (mode === 'dialog') return nextLine();
+  if (mode !== 'walk' || moving) return;
+  const [dx, dy] = DIRS[state.dir], tx = state.x + dx, ty = state.y + dy;
+  const npc = npcAt(tx, ty); if (npc) return talk(npc);
+  const lm = LANDMARKS.find(l => tx >= l.x && tx < l.x + l.w && ty >= l.y && ty < l.y + l.h);
+  if (lm && lm.id === 'stall') return openShop();
+  if (lm) return say(lm.name, [`This is the ${lm.name}. Someone nearby can tell you more about it.`]);
+}
+function checkItem() {
+  const spot = ITEM_SPOTS.find(s => s.x === state.x && s.y === state.y && !state.items.includes(s.id));
+  if (!spot) return;
+  const it = ITEMS[spot.id];
+  state.items.push(spot.id); state.coins += 10; save(); updateHud();
+  say('Found something!', [`${it.icon} You found a ${it.name}! +10 coins.`, it.about]);
+}
+
+// ---------- input ----------
+const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
+addEventListener('keydown', e => {
+  if (KEYMAP[e.key]) { held.add(KEYMAP[e.key]); e.preventDefault(); }
+  else if (e.key === ' ' || e.key === 'Enter') { if (mode !== 'panel') { e.preventDefault(); interact(); } }
+  else if (e.key === 'n' || e.key === 'N') { if (mode === 'walk') openNotebook(); else if (mode === 'panel' && !quiz) closePanel(); }
+  else if (e.key === 'Escape' && mode === 'panel' && !quiz) closePanel();
+});
+addEventListener('keyup', e => { if (KEYMAP[e.key]) held.delete(KEYMAP[e.key]); });
+addEventListener('blur', () => held.clear());
+document.querySelectorAll('.dpad button').forEach(b => {
+  const d = b.dataset.dir;
+  const on = e => { e.preventDefault(); held.add(d); }, off = e => { e.preventDefault(); held.delete(d); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
+});
+el('aBtn').addEventListener('click', interact);
+
+// ---------- update ----------
+const STEP_FRAMES = 8;
+function update() {
+  tick++;
+  if (moving) {
+    stepFrame++;
+    px = (moving.fx + (state.x - moving.fx) * stepFrame / STEP_FRAMES) * T;
+    py = (moving.fy + (state.y - moving.fy) * stepFrame / STEP_FRAMES) * T;
+    if (stepFrame >= STEP_FRAMES) { moving = null; px = state.x * T; py = state.y * T; save(); updateHud(); checkItem(); }
+    return;
+  }
+  if (mode !== 'walk') return;
+  const dir = ['up', 'down', 'left', 'right'].find(d => held.has(d));
+  if (!dir) return;
+  state.dir = dir;
+  const [dx, dy] = DIRS[dir];
+  if (!solid(state.x + dx, state.y + dy)) { moving = { fx: state.x, fy: state.y }; state.x += dx; state.y += dy; stepFrame = 0; }
+}
+
+// ---------- drawing ----------
+const R = (c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
+function drawTile(t, x, y, sx, sy) {
+  const h = hash(x, y);
+  if (t === WATER) {
+    R('#2a8fe0', sx, sy, T, T);
+    const o = Math.floor(tick / 20 + h * 4) % 4;
+    R('#7cc8ff', sx + 2 + o * 2, sy + 4, 4, 1); R('#7cc8ff', sx + 9 - o, sy + 11, 4, 1);
+    return;
+  }
+  if (t === PATH) { R('#e6cf9c', sx, sy, T, T); if (h > .6) R('#d4b97f', sx + Math.floor(h * 12), sy + Math.floor(h * 97 % 12), 2, 1); return; }
+  R(h > .5 ? '#5cbf62' : '#57b85d', sx, sy, T, T);                         // grass
+  if (h > .7) { R('#44a04e', sx + Math.floor(h * 11), sy + 5, 1, 2); R('#44a04e', sx + 4, sy + Math.floor(h * 40 % 12), 1, 2); }
+  if (t === FLOWER) { R('#fff', sx + 4, sy + 5, 2, 2); R('#ffc94d', sx + 10, sy + 9, 2, 2); R('#ff6b9a', sx + 7, sy + 12, 2, 2); }
+  if (t === TREE || t === CHERRY) {
+    const leaf = t === TREE ? '#2f8f46' : '#f59ac0', dark = t === TREE ? '#216b34' : '#e2709f', lite = t === TREE ? '#4bb463' : '#ffc6dd';
+    R('rgba(0,0,0,.18)', sx + 3, sy + 13, 10, 2);
+    R('#7a4a2a', sx + 7, sy + 10, 2, 5);
+    R(dark, sx + 2, sy + 3, 12, 8); R(leaf, sx + 3, sy + 1, 10, 9); R(leaf, sx + 1, sy + 4, 14, 5);
+    R(lite, sx + 5, sy + 2, 3, 2); R(lite, sx + 9, sy + 5, 2, 2);
+  }
+}
+function drawPerson(sx, sy, dir, step, c, hat) {
+  const bob = step ? 1 : 0;
+  R('rgba(0,0,0,.22)', sx + 3, sy + 14, 10, 2);
+  R('#2b2b3a', sx + 5, sy + 12 - bob, 2, 3 + bob); R('#2b2b3a', sx + 9, sy + 12 + bob - 1, 2, 3 - bob + 1);   // legs
+  R(c.shirt, sx + 4, sy + 7, 8, 6);                                         // body
+  R(c.skin, sx + 3, sy + 8, 1, 3); R(c.skin, sx + 12, sy + 8, 1, 3);        // arms
+  R(c.skin, sx + 4, sy + 1, 8, 7);                                          // head
+  R(c.hair, sx + 4, sy + 1, 8, dir === 'up' ? 6 : 2);                       // hair
+  if (dir === 'down') { R('#1a1a1a', sx + 6, sy + 4, 1, 2); R('#1a1a1a', sx + 9, sy + 4, 1, 2); }
+  if (dir === 'left') { R(c.hair, sx + 10, sy + 1, 2, 5); R('#1a1a1a', sx + 5, sy + 4, 1, 2); }
+  if (dir === 'right') { R(c.hair, sx + 4, sy + 1, 2, 5); R('#1a1a1a', sx + 10, sy + 4, 1, 2); }
+  if (hat) { R('#8a6a34', sx + 2, sy + 1, 12, 2); R('#b08a4a', sx + 5, sy - 1, 6, 2); }
+}
+function columns(x, y, w, h, n, c) { for (let i = 0; i < n; i++) R(c, x + Math.round(i * (w - 2) / (n - 1)), y, 2, h); }
+function drawLincoln(x, y) {                       // 80 x 64
+  R('rgba(0,0,0,.2)', x + 2, y + 60, 78, 4);
+  R('#d9d5c8', x, y + 52, 80, 10); R('#c4c0b2', x, y + 56, 80, 2);          // steps
+  R('#f1eee4', x + 4, y + 8, 72, 46); R('#e2ded2', x + 4, y + 8, 72, 8);     // hall + attic
+  R('#bdb9ab', x + 4, y + 16, 72, 2);
+  R('#9c9788', x + 8, y + 20, 64, 32);                                       // shaded interior
+  columns(x + 8, y + 20, 64, 32, 12, '#fbf9f2');
+  R('#6f6a5c', x + 36, y + 36, 8, 16); R('#fbf9f2', x + 38, y + 40, 4, 8);   // doorway + seated statue hint
+}
+function drawMonument(x, y) {                      // footprint 32 x 48, obelisk rises 48px above
+  const top = y - 48;
+  R('rgba(0,0,0,.2)', x + 4, y + 44, 26, 4);
+  for (let i = 0; i < 88; i++) {                   // tapered shaft, lighter stone on the lower part
+    const w = 8 + Math.round(i / 88 * 6), yy = top + 8 + i;
+    R(i > 58 ? '#f3efe4' : '#e3ddcd', x + 16 - w / 2, yy, w, 1);
+    R('rgba(0,0,0,.12)', x + 16 + w / 2 - 2, yy, 2, 1);
+  }
+  for (let i = 0; i < 8; i++) R('#e3ddcd', x + 16 - i / 2, top + i, Math.max(1, i), 1);   // pyramid tip
+  R('#c9c3b2', x + 9, top + 66, 14, 1);            // line where the stone changes
+  R('#d9d5c8', x + 4, y + 42, 24, 4);
+  [2, 28].forEach(fx => { R('#8a8a8a', x + fx, y + 30, 1, 14); R('#c9304f', x + fx + 1, y + 30, 4, 3); });   // flags
+}
+function drawWhiteHouse(x, y) {                    // 96 x 48
+  R('rgba(0,0,0,.2)', x + 2, y + 44, 94, 4);
+  R('#fdfdfb', x + 2, y + 14, 92, 32); R('#e6e6e0', x + 2, y + 14, 92, 3); R('#d2d2ca', x + 2, y + 44, 92, 2);
+  for (let i = 0; i < 9; i++) if (i < 3 || i > 5) { R('#7fa7c9', x + 7 + i * 10, y + 21, 4, 6); R('#7fa7c9', x + 7 + i * 10, y + 33, 4, 6); }
+  R('#f4f4ee', x + 34, y + 10, 28, 36); R('#e0e0d8', x + 32, y + 8, 32, 4);  // portico
+  columns(x + 36, y + 14, 24, 30, 4, '#ffffff');
+  R('#6b4a2e', x + 45, y + 34, 6, 10);
+  R('#8a8a8a', x + 47, y - 2, 1, 10); R('#c9304f', x + 48, y - 2, 6, 2); R('#fff', x + 48, y, 6, 1); R('#2a4d9b', x + 48, y - 2, 2, 2);
+}
+function drawCapitol(x, y) {                       // 96 x 80
+  R('rgba(0,0,0,.2)', x + 2, y + 76, 94, 4);
+  R('#f4f2ea', x + 2, y + 46, 92, 32); R('#dedbd0', x + 2, y + 46, 92, 3); R('#cfccc0', x + 2, y + 74, 92, 4);   // wings
+  columns(x + 6, y + 52, 26, 22, 5, '#ffffff'); columns(x + 64, y + 52, 26, 22, 5, '#ffffff');
+  R('#fbfaf5', x + 34, y + 40, 28, 38); columns(x + 36, y + 48, 24, 26, 5, '#ffffff'); R('#6b4a2e', x + 45, y + 64, 6, 12);
+  R('#e9e6dc', x + 36, y + 30, 24, 10); columns(x + 37, y + 31, 22, 9, 7, '#ffffff');                          // drum
+  for (let i = 0; i < 14; i++) { const w = 24 - Math.round(i * i / 9); R(i % 3 === 0 ? '#dcd9ce' : '#f3f1e9', x + 48 - w / 2, y + 29 - i, w, 1); }   // dome
+  R('#e9e6dc', x + 46, y + 10, 4, 6); R('#8c6b3a', x + 47, y + 4, 2, 6); R('#8c6b3a', x + 46, y + 6, 4, 1);    // lantern + Statue of Freedom
+}
+function drawCastle(x, y) {                        // 80 x 64
+  const stone = '#a5493a', dark = '#7e3327', lite = '#bf5d4b';
+  R('rgba(0,0,0,.2)', x + 2, y + 60, 78, 4);
+  R(stone, x + 4, y + 26, 72, 36); R(dark, x + 4, y + 58, 72, 4);
+  for (let i = 0; i < 9; i++) R(dark, x + 4 + i * 8, y + 22, 4, 4);          // battlements
+  [[8, 6, 12], [34, 0, 12], [60, 10, 12]].forEach(([tx, ty, tw]) => {         // towers
+    R(stone, x + tx, y + ty + 8, tw, 54 - ty); R(lite, x + tx, y + ty + 8, 2, 54 - ty);
+    for (let i = 0; i < 8; i++) R(dark, x + tx + i * .75, y + ty + i, tw - i * 1.5, 1);
+    R('#ffd98a', x + tx + tw / 2 - 1, y + ty + 16, 3, 6);
+  });
+  for (let i = 0; i < 4; i++) R('#ffd98a', x + 24 + i * 9 + (i > 1 ? 14 : 0) - 4, y + 36, 3, 7);
+  R('#3b1f17', x + 36, y + 46, 8, 16); R('#5a3327', x + 36, y + 44, 8, 2);
+}
+function drawStall(x, y) {                         // 32 x 16, awning rises above
+  R('rgba(0,0,0,.2)', x + 1, y + 13, 31, 3);
+  R('#8a5a2e', x + 2, y + 4, 28, 11); R('#a87440', x + 2, y + 4, 28, 3);
+  R('#ffc94d', x + 6, y + 8, 4, 4); R('#ff6b9a', x + 14, y + 8, 4, 4); R('#2ea8e6', x + 22, y + 8, 4, 4);
+  R('#6b4423', x + 2, y - 10, 2, 16); R('#6b4423', x + 28, y - 10, 2, 16);
+  for (let i = 0; i < 8; i++) R(i % 2 ? '#ffffff' : '#ff6b4a', x + i * 4, y - 12, 4, 7);
+  R('#d9532f', x, y - 5, 32, 1);
+}
+
+function draw() {
+  const camX = Math.max(0, Math.min(MAP_W * T - VIEW_W * T, px - (VIEW_W * T) / 2 + T / 2));
+  const camY = Math.max(0, Math.min(MAP_H * T - VIEW_H * T, py - (VIEW_H * T) / 2 + T / 2));
+  const x0 = Math.floor(camX / T), y0 = Math.floor(camY / T);
+  const flat = [], tall = [];
+  for (let y = y0; y <= y0 + VIEW_H && y < MAP_H; y++) for (let x = x0; x <= x0 + VIEW_W && x < MAP_W; x++) {
+    const t = map[y][x];
+    drawTile(t === TREE || t === CHERRY || t === SOLID ? G : t, x, y, x * T - camX, y * T - camY);
+    if (t === TREE || t === CHERRY) tall.push({ base: y * T + 15, fn: () => drawTile(t, x, y, x * T - camX, y * T - camY) });
+  }
+  ITEM_SPOTS.forEach(s => { if (!state.items.includes(s.id)) flat.push(() => {   // sparkles
+    const sx = s.x * T - camX, sy = s.y * T - camY, p = Math.floor(tick / 12) % 3;
+    R('#fff7c2', sx + 7, sy + 5 - p, 2, 6 + p * 2); R('#fff7c2', sx + 5 - p, sy + 7, 6 + p * 2, 2); R('#ffc94d', sx + 7, sy + 7, 2, 2);
+  }); });
+  flat.forEach(f => f());
+  LANDMARKS.forEach(l => tall.push({ base: (l.y + l.h) * T - 1, fn: () => l.draw(l.x * T - camX, l.y * T - camY) }));
+  NPCS.forEach(n => tall.push({ base: n.y * T + 14, fn: () => {
+    const facing = Math.abs(n.x - state.x) + Math.abs(n.y - state.y) === 1 ? (n.x < state.x ? 'right' : n.x > state.x ? 'left' : n.y < state.y ? 'down' : 'up') : 'down';
+    drawPerson(n.x * T - camX, n.y * T - camY, facing, false, n, n.hat);
+    const teach = n.ranger ? (state.facts.length >= QUIZ_UNLOCK && !state.stamp) : n.facts.some(f => !state.facts.includes(f));
+    if (teach) { const b = Math.floor(tick / 15) % 2; R('#10203a', n.x * T - camX + 5, n.y * T - camY - 9 - b, 6, 7); R('#ffc94d', n.x * T - camX + 6, n.y * T - camY - 8 - b, 4, 5); R('#10203a', n.x * T - camX + 7, n.y * T - camY - 8 - b, 2, 3); R('#10203a', n.x * T - camX + 7, n.y * T - camY - 4 - b, 2, 1); }
+  } }));
+  tall.push({ base: py + 14, fn: () => drawPerson(px - camX, py - camY, state.dir, moving && stepFrame % 8 < 4, { skin: '#c98f62', hair: '#3a2a1a', shirt: '#ffc94d' }, state.hatOn) });
+  tall.sort((a, b) => a.base - b.base).forEach(o => o.fn());
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+updateHud();
+if (!state.facts.length && !state.met.length) say('Welcome, explorer!', ['You\'ve arrived on the National Mall in Washington, DC.', 'Talk to the people with a ❗ over their heads to learn about the landmarks.', 'Learn 6 facts, then find Ranger Dee by the Washington Monument for a pop quiz. Good luck!']);
+loop();
+
+// test hooks (used by automated checks; harmless in play)
+window.__adv = { get state() { return state; }, get mode() { return mode; }, solid, map, NPCS, FACTS, ITEM_SPOTS, LANDMARKS,
+  warp(x, y, dir) { state.x = x; state.y = y; if (dir) state.dir = dir; px = x * T; py = y * T; moving = null; updateHud(); } };
+</script>
+</body>
+</html>
